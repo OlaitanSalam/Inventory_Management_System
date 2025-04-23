@@ -1,0 +1,358 @@
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Create sale{% endblock title %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+{% endblock stylesheets %}
+
+<h2>Add sale</h2>
+
+{% block content %}
+<div class="container py-5">
+    <div class="mb-4">
+        <a href="{% url 'saleslist' %}" class="btn btn-outline-success">
+            <i class="fas fa-arrow-left me-2"></i> Go back
+        </a>
+    </div>
+
+    <form id="form_sale" action="{% url 'sale-create' %}" class="saleForm" method="post">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Sale Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="searchbox_items" class="form-label">Search Item:</label>
+                            <select class="form-select select2" name="searchbox_items" id="searchbox_items" aria-label="Search items"></select>
+                        </div>
+
+                        <button type="button" class="btn btn-danger btn-sm mb-4 deleteAll">
+                            <i class="fas fa-trash-alt me-2"></i> Delete All Items
+                        </button>
+
+                        <div class="table-responsive my-3">
+                            <table class="table table-bordered table-striped" id="table_items">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Sale Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="customer" class="form-label">Customer</label>
+                            <select name="customer" id="customer" class="form-control">
+                                <option value="">Walk-in Customer</option>
+                                {% for store in branch_stores %}
+                                <option value="{{ store.id }}">{{ store.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sub_total" class="form-label">Subtotal</label>
+                            <input name="sub_total" type="number" class="form-control" id="sub_total" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tax_rate" class="form-label">Tax Rate</label>
+                            <select name="tax_rate" id="tax_rate" class="form-control">
+                                <option value="">Select Tax Rate</option>
+                                {% for tax_rate in tax_rates %}
+                                <option value="{{ tax_rate.percentage }}">{{ tax_rate.percentage }}%</option>
+                                {% endfor %}
+                            </select>
+                            <input name="tax_percentage" type="hidden" id="tax_percentage" value="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tax_amount" class="form-label">Tax Amount</label>
+                            <input name="tax_amount" type="number" class="form-control" id="tax_amount" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="grand_total" class="form-label">Grand Total</label>
+                            <input name="grand_total" type="number" class="form-control" id="grand_total" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_paid" class="form-label">Amount Paid</label>
+                            <input name="amount_paid" type="number" class="form-control" id="amount_paid" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Create Sale</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" defer></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-touchspin/3.1.0/jquery.bootstrap-touchspin.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.15/dist/sweetalert2.all.min.js" defer></script>
+
+<script>
+function roundTo(n, digits) {
+    if (digits === undefined) {
+        digits = 0;
+    }
+    var multiplicator = Math.pow(10, digits);
+    n = parseFloat((n * multiplicator).toFixed(11));
+    return Math.round(n) / multiplicator;
+}
+
+var number = 1;
+var sale = {
+    products: {
+        sub_total: 0.00,
+        grand_total: 0.00,
+        tax_amount: 0.00,
+        tax_percentage: 0.00,
+        amount_payed: 0.00,
+        amount_change: 0.00,
+        items: []
+    },
+    calculate_sale: function () {
+        var sub_total = 0.00;
+        var tax_percentage = $('input[name="tax_percentage"]').val();
+        
+        $.each(this.products.items, function (pos, dict) {
+            dict.pos = pos;
+            if (!dict.manual_total) {
+                dict.total_item = roundTo(dict.quantity * dict.price, 2);
+            }
+            sub_total += parseFloat(dict.total_item) || 0;
+        });
+
+        this.products.sub_total = roundTo(sub_total, 2);
+        this.products.tax_amount = roundTo(this.products.sub_total * (tax_percentage / 100), 2);
+        this.products.grand_total = roundTo(this.products.sub_total + this.products.tax_amount, 2);
+
+        $('input[name="sub_total"]').val(this.products.sub_total);
+        $('input[name="tax_amount"]').val(this.products.tax_amount);
+        $('input[name="grand_total"]').val(this.products.grand_total);
+    },
+    add_item: function (item) {
+        item.total_item = roundTo(item.quantity * item.price, 2);
+        item.manual_total = false;
+        this.products.items.push(item);
+        var rowNode = tblItems.row.add(item).draw(false).node();
+        $(rowNode).find("input[name='quantity']").TouchSpin({
+            min: 1,
+            max: 10000,
+            step: 1
+        });
+        this.calculate_sale();
+    }
+};
+
+var tblItems;
+
+$(document).ready(function () {
+    tblItems = $("#table_items").DataTable({
+        columns: [
+            {"data": "number"},
+            {"data": "text"},
+            {"data": "price", "render": function(data) {
+                return parseFloat(data).toFixed(2) + ' ₦';
+            }},
+            {"data": "quantity", "render": function(data, type, row) {
+                return '<input name="quantity" type="number" class="form-control text-center" value="' + row.quantity + '">';
+            }},
+            {"data": "total_item", "render": function(data, type, row) {
+                return '<input name="total_item" type="number" step="0.01" class="form-control text-right" value="' + (row.total_item || 0) + '">';
+            }},
+            {"data": "id", "render": function() {
+                return '<a rel="delete" type="button" class="btn btn-sm btn-danger"> <i class="fas fa-trash-alt"></i> </a>';
+            }}
+        ]
+    });
+
+    $('#searchbox_items').select2({
+        delay: 250,
+        placeholder: 'Search an item',
+        minimumInputLength: 1,
+        allowClear: true,
+        templateResult: function(repo) {
+            if (!repo.text) return repo.text;
+            return $(`<div class="card mb-3"><div class="card-body"><small class="card-title">${repo.text}</small></div></div>`);
+        },
+        ajax: {
+            url: "{% url 'get_items' %}",
+            type: 'POST',
+            data: function (params) {
+                return {
+                    term: params.term,
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            }
+        }
+    }).on('select2:select', function (e) {
+        var data = e.params.data;
+        data.number = number++;
+        data.quantity = 1;
+        sale.add_item(data);
+        $(this).val('').trigger('change.select2');
+    });
+
+    $('#table_items tbody').on('click', 'a[rel="delete"]', function () {
+        var tr = $(this).closest('tr');
+        var row = tblItems.row(tr);
+        var index = row.index();
+        sale.products.items.splice(index, 1);
+        row.remove().draw(false);
+        sale.calculate_sale();
+        Swal.fire('Item removed!', '', 'success');
+    });
+
+    $('#table_items tbody').on('keyup', 'input[name="quantity"]', function () {
+        var $input = $(this);
+        var quantity = $input.val();
+        if (quantity === '' || isNaN(parseInt(quantity))) {
+            return; // Allow empty input during typing
+        }
+        quantity = parseInt(quantity);
+        var tr = $input.closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        var item = sale.products.items[rowIndex];
+        item.quantity = quantity;
+        if (!item.manual_total) {
+            item.total_item = roundTo(quantity * item.price, 2);
+            $(tr).find('input[name="total_item"]').val(item.total_item);
+        }
+        sale.calculate_sale();
+    });
+
+    $('#table_items tbody').on('blur', 'input[name="quantity"]', function () {
+        var $input = $(this);
+        var quantity = parseInt($input.val());
+        if (isNaN(quantity) || quantity < 1) {
+            quantity = 1;
+            $input.val(1);
+        }
+        var tr = $input.closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        var item = sale.products.items[rowIndex];
+        item.quantity = quantity;
+        if (!item.manual_total) {
+            item.total_item = roundTo(quantity * item.price, 2);
+            $(tr).find('input[name="total_item"]').val(item.total_item);
+        }
+        sale.calculate_sale();
+    });
+
+    $('#table_items tbody').on('change keyup', 'input[name="total_item"]', function () {
+        var total_item = parseFloat($(this).val()) || 0;
+        var tr = $(this).closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        sale.products.items[rowIndex].total_item = total_item;
+        sale.products.items[rowIndex].manual_total = true;
+        sale.calculate_sale();
+    });
+
+    $('.deleteAll').on('click', function () {
+        if (sale.products.items.length === 0) return;
+        Swal.fire({
+            title: "Delete all items?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                sale.products.items = [];
+                tblItems.clear().draw();
+                sale.calculate_sale();
+            }
+        });
+    });
+
+    $('#tax_rate').on('change', function() {
+        var percentage = $(this).val() || "0";
+        $('#tax_percentage').val(percentage);
+        sale.calculate_sale();
+    });
+
+    $('form#form_sale').on('submit', function (event) {
+        event.preventDefault();
+        var amountPaid = parseFloat($('input[name="amount_paid"]').val());
+        var grandTotal = parseFloat($('input[name="grand_total"]').val());
+        var amountChange = roundTo(amountPaid - grandTotal, 2);
+
+        var formData = {
+            sub_total: $('input[name="sub_total"]').val(),
+            tax_percentage: $('input[name="tax_percentage"]').val(),
+            tax_amount: $('input[name="tax_amount"]').val(),
+            grand_total: $('input[name="grand_total"]').val(),
+            amount_paid: $('input[name="amount_paid"]').val(),
+            amount_change: amountChange,
+            items: sale.products.items.map(item => ({
+                id: item.id,
+                price: item.price,
+                quantity: item.quantity,
+                total_item: item.total_item
+            }))
+        };
+
+        if (isNaN(amountChange)) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Amount change is required!' });
+            return;
+        }
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            data: JSON.stringify(formData),
+            success: function (response) {
+                sale.products.items = [];
+                tblItems.clear().draw();
+                $('form#form_sale').trigger('reset');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: response.message
+                }).then(() => {
+                    window.location.href = response.redirect;
+                });
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: xhr.responseJSON.message || 'An error occurred while processing the sale!'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock javascripts %}

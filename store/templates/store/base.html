@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {% load static %}
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="https://unpkg.com/@webpixels/css@1.1.5/dist/index.css">
+        <link rel="stylesheet" href="{% static 'css/style.css' %}" type="text/css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+        {% block stylesheets %}{% endblock stylesheets %}
+        <title>IMS: {% block title %} {% endblock title %}</title>
+        <link rel="icon" href="{% static 'images/logo/favicon.png' %}" type="image/png">
+        <style>
+            .notification-badge {
+                font-size: 14px;
+                color: #fff;
+                background: red;
+                border-radius: 50%;
+                padding: 8px 8px;
+                min-width: 24px;
+                text-align: center;
+                position: relative;
+                left: -13px;
+                top: -15px;
+                opacity: 1;
+            }
+        </style>
+    </head>
+    <body>
+      <style>
+        .paginator { display: flex; justify-content: center; }
+      </style>
+        {% include "store/sidebar.html" %}
+        <section id="wrapper">
+          <nav class="navbar navbar-expand-md bg-success">
+            <div class="container-fluid mx-2">
+                <div class="navbar-header">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#toggle-navbar" 
+                        aria-controls="toggle-navbar" aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="fa fa-bars text-white"></i>
+                    </button>
+                    <a class="navbar-brand" style="font-size: 20px;" href="{% url 'dashboard' %}">
+                        Akept<span class="text-warning">InventoryMS</span>
+                    </a>
+                </div>
+                
+                <div class="collapse navbar-collapse" id="toggle-navbar">
+                    <ul class="navbar-nav ms-auto">
+                        <!-- Notifications -->
+                        <li class="nav-item me-3">
+                            <a class="nav-link" href="{% url 'notifications' %}">
+                                <i class="fa fa-bell text-white"></i>
+                                {% if unread_alerts_count > 0 %}
+                                    <span class="notification-badge">{{ unread_alerts_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        
+                        <!-- Admin Link -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/" title="Admin Dashboard">
+                                <i class="fas fa-user-shield text-white"></i>
+                            </a>
+                        </li>
+                        
+                        
+                    </ul>
+                </div>
+            </div>
+        </nav>
+          {% block content %}{% endblock content %}
+        </section>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+        <script>
+            function updateAlertCount() {
+                $.ajax({
+                    url: "{% url 'get_unread_alerts_count' %}",
+                    success: function(data) {
+                        var count = data.count;
+                        var badge = $('.notification-badge');
+                        if (count > 0) {
+                            badge.text(count);
+                            badge.show();
+                        } else {
+                            badge.hide();
+                        }
+                    }
+                });
+            }
+            $(document).ready(function() {
+                updateAlertCount();
+                setInterval(updateAlertCount, 60000); // Refresh every 60 seconds
+            });
+        </script>
+        {% block javascripts %}{% endblock javascripts %}
+      </body>
+</html>

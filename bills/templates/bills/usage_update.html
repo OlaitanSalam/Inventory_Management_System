@@ -1,0 +1,16 @@
+{% extends "store/base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Update Usage Record{% endblock %}
+{% block content %}
+<div class="container p-5">
+    <h2 class="text-success mb-4">Update Usage Record</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <div class="form-group mt-4">
+            <button class="btn btn-success" type="submit">Save Changes</button>
+            <a class="btn btn-outline-secondary" href="{% url 'usage_list' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

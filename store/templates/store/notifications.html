@@ -1,0 +1,41 @@
+{% extends "store/base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="container p-5">
+    <h2>Notifications</h2>
+    <div class="d-flex justify-content-end mb-3">
+        <form method="post" action="{% url 'mark_all_alerts_as_read' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Mark All as Read</button>
+        </form>
+    </div>
+    <ul class="list-group">
+        {% for alert in alerts %}
+        <li class="list-group-item d-flex justify-content-between align-items-center {% if not alert.is_read %}list-group-item-warning{% endif %}">
+            <div>
+                <strong>{{ alert.store_inventory.item.name }}</strong> in {{ alert.store_inventory.store.name }}:
+                Current stock: {{ alert.store_inventory.quantity }}, Minimum: {{ alert.store_inventory.min_stock_level }}
+                - {{ alert.get_recommendation }}
+            </div>
+            <div class="d-flex align-items-center">
+                {% if not alert.is_read %}
+                <form method="post" action="{% url 'mark_alert_as_read' pk=alert.pk %}" class="me-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-secondary">Mark as Read</button>
+                </form>
+                {% else %}
+                <span class="me-2">(Read)</span>
+                {% endif %}
+                <a href="{% url 'purchaseorder-create' %}" class="btn btn-sm btn-info me-2">Take Action</a>
+                <form method="post" action="{% url 'delete_alert' pk=alert.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+                </form>
+            </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item">No notifications at this time.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

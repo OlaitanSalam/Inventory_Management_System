@@ -1,0 +1,291 @@
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Create Purchase Order{% endblock title %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="mb-4">
+        <a href="{% url 'purchaseorderslist' %}" class="btn btn-outline-success">
+            <i class="fas fa-arrow-left me-2"></i> Go back
+        </a>
+    </div>
+
+    <form id="form_purchase_order" action="{% url 'purchaseorder-create' %}" class="purchaseOrderForm" method="post">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Purchase Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="searchbox_items" class="form-label">Search Item:</label>
+                            <select class="form-select select2" name="searchbox_items" id="searchbox_items" aria-label="Search items"></select>
+                        </div>
+
+                        <button type="button" class="btn btn-danger btn-sm mb-4 deleteAll">
+                            <i class="fas fa-trash-alt me-2"></i> Delete All Items
+                        </button>
+
+                        <table class="table table-bordered table-striped" id="table_items">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Quantity</th>
+                                    <th>Total Amount</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Purchase Order Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="vendor" class="form-label">Vendor</label>
+                            <select name="vendor" class="form-control" id="vendor" required>
+                                <option value="">Select Vendor</option>
+                                {% for vendor in vendors %}
+                                <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="delivery_date" class="form-label">Delivery Date</label>
+                            <input name="delivery_date" type="datetime-local" class="form-control" id="delivery_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="delivery_status" class="form-label">Delivery Status</label>
+                            <select name="delivery_status" class="form-control" id="delivery_status" required>
+                                <option value="P">Pending</option>
+                                <option value="S">Successful</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_value" class="form-label">Total Value</label>
+                            <input name="total_value" type="number" class="form-control" id="total_value" readonly>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Create Purchase Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" defer></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-touchspin/3.1.0/jquery.bootstrap-touchspin.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.15/dist/sweetalert2.all.min.js" defer></script>
+
+<script>
+    function roundTo(n, digits) {
+        if (digits === undefined) digits = 0;
+        var multiplicator = Math.pow(10, digits);
+        n = parseFloat((n * multiplicator).toFixed(11));
+        return Math.round(n) / multiplicator;
+    }
+
+    var number = 1;
+    var purchaseOrder = {
+        items: [],
+        calculate_total: function () {
+            var total = 0.00;
+            $.each(this.items, function (pos, dict) {
+                dict.pos = pos;
+                total += parseFloat(dict.total_item) || 0;
+            });
+            $('input[name="total_value"]').val(roundTo(total, 2));
+        },
+        add_item: function (item) {
+            this.items.push(item);
+            this.list_item();
+        },
+        list_item: function () {
+            this.calculate_total();
+            tblItems = $("#table_items").DataTable({
+                destroy: true,
+                data: this.items,
+                columns: [
+                    {"data": "number"},
+                    {"data": "text"},
+                    {"data": "quantity"},
+                    {"data": "total_item"},
+                    {"data": "id"},
+                ],
+                columnDefs: [
+                    {
+                        class: 'text-center',
+                        targets: [2],
+                        render: function (data, type, row) {
+                            return '<input name="quantity" type="number" class="form-control text-center" value="' + row.quantity + '">';
+                        },
+                    },
+                    {
+                        class: 'text-center',
+                        targets: [3],
+                        render: function (data, type, row) {
+                            return '<input name="total_item" type="number" step="0.01" class="form-control text-center" value="' + (row.total_item || 0) + '">';
+                        },
+                    },
+                    {
+                        class: 'text-center',
+                        targets: [4],
+                        orderable: false,
+                        render: function () {
+                            return '<a rel="delete" type="button" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i></a>';
+                        },
+                    },
+                ],
+                rowCallback(row, data) {
+                    $(row).find("input[name='quantity']").TouchSpin({
+                        min: 1,
+                        max: 1000000,
+                        step: 1
+                    });
+                },
+            });
+        },
+    };
+
+    $(document).ready(function () {
+        $('#searchbox_items').select2({
+            delay: 250,
+            placeholder: 'Search an item',
+            minimumInputLength: 1,
+            allowClear: true,
+            ajax: {
+                url: "{% url 'get_items' %}",
+                type: 'POST',
+                data: function (params) {
+                    return {
+                        term: params.term,
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.map(function(item) {
+                            return {
+                                id: item.id,
+                                text: item.text
+                            };
+                        })
+                    };
+                }
+            }
+        }).on('select2:select', function (e) {
+            var data = e.params.data;
+            data.number = number++;
+            data.quantity = 1;
+            data.total_item = 0;
+            purchaseOrder.add_item(data);
+            $(this).val('').trigger('change.select2');
+        });
+
+        $('#table_items tbody').on('click', 'a[rel="delete"]', function () {
+            var tr = tblItems.cell($(this).closest('td')).index();
+            purchaseOrder.items.splice(tr.row, 1);
+            purchaseOrder.list_item();
+            Swal.fire('Item removed!', '', 'success');
+        }).on('change keyup', 'input[name="quantity"]', function () {
+            var quantity = parseInt($(this).val()) || 1;
+            var tr = tblItems.cell($(this).closest('td')).index();
+            purchaseOrder.items[tr.row].quantity = quantity;
+            purchaseOrder.calculate_total();
+        }).on('change keyup', 'input[name="total_item"]', function () {
+            var total_item = parseFloat($(this).val()) || 0;
+            var tr = tblItems.cell($(this).closest('td')).index();
+            purchaseOrder.items[tr.row].total_item = total_item;
+            purchaseOrder.calculate_total();
+        });
+
+        $('.deleteAll').on('click', function () {
+            if (purchaseOrder.items.length === 0) return;
+            Swal.fire({
+                title: "Delete all items?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete all',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    
+
+ purchaseOrder.items = [];
+                    purchaseOrder.list_item();
+                }
+            });
+        });
+
+        tblItems = $('#table_items').DataTable();
+
+        $('form#form_purchase_order').on('submit', function (event) {
+            event.preventDefault();
+            purchaseOrder.calculate_total();
+            if (purchaseOrder.items.length === 0) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please add at least one item!' });
+                return;
+            }
+            if (purchaseOrder.items.some(item => item.quantity <= 0 || item.total_item <= 0)) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'All items must have quantity and total amount greater than 0!' });
+                return;
+            }
+            var formData = {
+                vendor: $('#vendor').val(),
+                delivery_date: $('#delivery_date').val(),
+                delivery_status: $('#delivery_status').val(),
+                total_value: $('input[name="total_value"]').val(),
+                items: purchaseOrder.items.map(item => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    total_item: item.total_item,
+                    description: item.description || ''
+                }))
+            };
+            if (!formData.vendor || !formData.delivery_date || !formData.delivery_status) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'All fields are required!' });
+                return;
+            }
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()},
+                data: JSON.stringify(formData),
+                success: function (response) {
+                    purchaseOrder.items = [];
+                    purchaseOrder.list_item();
+                    $('form#form_purchase_order').trigger('reset');
+                    Swal.fire({ icon: 'success', title: 'Success', text: response.message });
+                    setTimeout(() => { window.location.href = response.redirect; }, 1500);
+                },
+                error: function (xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseJSON.message || 'An error occurred!'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock javascripts %}

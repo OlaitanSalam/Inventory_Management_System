@@ -1,0 +1,249 @@
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Record Internal Usage{% endblock %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="mb-4">
+        <a href="{% url 'usage_list' %}" class="btn btn-outline-success">
+            <i class="fas fa-arrow-left me-2"></i> Go Back
+        </a>
+    </div>
+    <form id="form_usage" action="{% url 'usage_create' %}" method="post">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Usage Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="searchbox_items" class="form-label">Search Item:</label>
+                            <select class="form-select select2" name="searchbox_items" id="searchbox_items" aria-label="Search items"></select>
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm mb-4 deleteAll">
+                            <i class="fas fa-trash-alt me-2"></i> Delete All Items
+                        </button>
+                        <div class="table-responsive my-3">
+                            <table class="table table-bordered table-striped" id="table_items">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Usage Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea name="description" class="form-control" id="description"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_amount" class="form-label">Total Amount</label>
+                            <input name="total_amount" type="number" class="form-control" id="total_amount" readonly value="0.00">
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Record Usage</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" defer></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-touchspin/3.1.0/jquery.bootstrap-touchspin.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.15/dist/sweetalert2.all.min.js" defer></script>
+
+<script>
+    var number = 1;
+    var usage = {
+        products: {
+            total_amount: 0.00,
+            items: []
+        },
+        calculate_usage: function () {
+            var total_amount = 0.00;
+            $.each(this.products.items, function (pos, dict) {
+                dict.total_item = (parseFloat(dict.price) * parseInt(dict.quantity || 1)).toFixed(2);
+                total_amount += parseFloat(dict.total_item);
+            });
+            this.products.total_amount = total_amount.toFixed(2);
+            $('#total_amount').val(this.products.total_amount);
+        },
+        add_item: function (item) {
+            this.products.items.push(item);
+            this.list_item();
+        },
+        list_item: function () {
+            this.calculate_usage();
+            tblItems = $("#table_items").DataTable({
+                destroy: true,
+                data: this.products.items,
+                columns: [
+                    {"data": "number"},
+                    {"data": "text"},
+                    {"data": "price"},
+                    {"data": "quantity"},
+                    {"data": "total_item"},
+                    {"data": "id"},
+                ],
+                columnDefs: [
+                    {
+                        class: 'text-center',
+                        targets: [3], // Quantity column
+                        render: function (data, type, row) {
+                            return '<input name="quantity" type="number" class="form-control text-center" value="' + (row.quantity || 1) + '">';
+                        },
+                    },
+                    {
+                        class: 'text-right',
+                        targets: [2, 4], // Price and Total columns
+                        render: function (data) {
+                            return parseFloat(data).toFixed(2) + ' $';
+                        },
+                    },
+                    {
+                        class: 'text-center',
+                        targets: [-1],
+                        orderable: false,
+                        render: function () {
+                            return '<a rel="delete" type="button" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i></a>';
+                        },
+                    },
+                ],
+                rowCallback: function(row, data) {
+                    $(row).find("input[name='quantity']").TouchSpin({
+                        min: 1,
+                        max: 5000,
+                        step: 1
+                    });
+                },
+            });
+        },
+    };
+
+    $(document).ready(function () {
+        $('#searchbox_items').select2({
+            delay: 250,
+            placeholder: 'Search an item',
+            minimumInputLength: 1,
+            allowClear: true,
+            ajax: {
+                url: "{% url 'get_items' %}",
+                type: 'POST',
+                data: function (params) {
+                    return {
+                        term: params.term,
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.map(function(item) {
+                            return { id: item.id, text: item.text, price: item.price };
+                        })
+                    };
+                }
+            }
+        }).on('select2:select', function (e) {
+            var data = e.params.data;
+            data.number = number++;
+            data.quantity = 1; // Default quantity
+            usage.add_item(data);
+            $(this).val('').trigger('change.select2');
+        });
+
+        $('#table_items tbody').on('click', 'a[rel="delete"]', function () {
+            var tr = tblItems.cell($(this).closest('td')).index();
+            usage.products.items.splice(tr.row, 1);
+            usage.list_item();
+            Swal.fire('Item removed!', '', 'success');
+        }).on('change keyup', 'input[name="quantity"]', function () {
+            var quantity = parseInt($(this).val()) || 1;
+            var tr = tblItems.cell($(this).closest('td')).index();
+            usage.products.items[tr.row].quantity = quantity;
+            usage.calculate_usage();
+            $('td:eq(4)', tblItems.row(tr.row).node()).html(usage.products.items[tr.row].total_item + ' $');
+        });
+
+        $('.deleteAll').on('click', function () {
+            if (usage.products.items.length === 0) return;
+            Swal.fire({
+                title: "Delete all items?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete all',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    usage.products.items = [];
+                    usage.list_item();
+                }
+            });
+        });
+
+        tblItems = $('#table_items').DataTable();
+
+        $('form#form_usage').on('submit', function (event) {
+            event.preventDefault();
+            if (usage.products.items.length === 0) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Please add at least one item!' });
+                return;
+            }
+            var formData = {
+                description: $('#description').val(),
+                items: usage.products.items.map(item => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    price_per_item: item.price
+                }))
+            };
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()},
+                data: JSON.stringify(formData),
+                success: function (response) {
+                    usage.products.items = [];
+                    usage.list_item();
+                    $('form#form_usage').trigger('reset');
+                    Swal.fire({ icon: 'success', title: 'Success', text: response.message });
+                    setTimeout(() => { window.location.href = response.redirect; }, 1500);
+                },
+                error: function (xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseJSON.message || 'An error occurred!'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
