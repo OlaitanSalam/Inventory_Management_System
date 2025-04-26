@@ -23,6 +23,7 @@ class ItemForm(forms.ModelForm):
             'description',
             'category',
             'price',
+            'purchase_price',
             'expiring_date',
         ]
         
@@ -41,6 +42,11 @@ class ItemForm(forms.ModelForm):
                     'step': '0.01'
                 }
             ),
+            'purchase_price': forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'step': '0.01'}
+            ),
             'expiring_date': forms.DateTimeInput(
                 attrs={
                     'class': 'form-control',
@@ -48,6 +54,11 @@ class ItemForm(forms.ModelForm):
                 }
             ),
         }
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if Item.objects.filter(name__iexact=name).exists() and not self.instance.pk:
+            raise forms.ValidationError("An item with this name already exists. Access your store inventory on the Admin page to update it.")
+        return name    
 
 class CategoryForm(forms.ModelForm):
     """

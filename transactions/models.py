@@ -1,7 +1,7 @@
 from django.db import models
 from django_extensions.db.fields import AutoSlugField
 from store.models import Item, Store, StoreInventory
-from accounts.models import Vendor, Customer, Profile
+from accounts.models import Vendor, Profile
 from django.db import transaction
 import uuid
 
@@ -42,6 +42,12 @@ class Sale(models.Model):
 
     def sum_products(self):
         return sum(detail.quantity for detail in self.saledetail_set.all())
+    # Added method to display customer name or "Walk-in Customer"
+    def get_customer_display(self):
+        if self.customer:
+            return self.customer.name
+        else:
+            return "Walk-in Customer"
 
 class SaleDetail(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, db_column="sale", related_name="saledetail_set")

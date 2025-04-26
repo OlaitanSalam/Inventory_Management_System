@@ -20,6 +20,7 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug')
     search_fields = ('name',)
     ordering = ('name',)
+    list_per_page = 10
 
 
 class ItemAdmin(admin.ModelAdmin):
@@ -32,6 +33,7 @@ class ItemAdmin(admin.ModelAdmin):
     search_fields = ('name', 'category__name')
     list_filter = ('category', )
     ordering = ('name',)
+    list_per_page = 10
 
 
 """class DeliveryAdmin(admin.ModelAdmin):
@@ -51,6 +53,7 @@ class StoreInventoryAdmin(admin.ModelAdmin):
     list_display = ('store', 'item', 'quantity', 'min_stock_level')
     list_filter = ('store', 'item__category')
     search_fields = ('item__name', 'store__name')
+    list_per_page = 15
     
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -61,6 +64,7 @@ class StoreInventoryAdmin(admin.ModelAdmin):
 class StockAlertAdmin(admin.ModelAdmin):
     list_display = ('store_inventory', 'created_at', 'is_read')
     list_filter = ('is_read', 'store_inventory__store')
+    list_per_page = 15
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Item, ItemAdmin)
 #admin.site.register(Delivery, DeliveryAdmin)

@@ -10,6 +10,7 @@ class VendorAdmin(admin.ModelAdmin):
     fields = ('name', 'phone_number', 'address')
     list_display = ('name',  'address')
     search_fields = ('name', 'phone_number', 'address')
+    list_per_page = 15
     
 
 
@@ -24,6 +25,7 @@ class CustomProfileAdmin(UserAdmin):
     list_filter = ('role', 'status', 'is_staff')
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
+    list_per_page = 15
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),

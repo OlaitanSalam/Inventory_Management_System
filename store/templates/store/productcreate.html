@@ -2,86 +2,129 @@
 {% load static %}
 
 {% block title %}
-    Add Product
+    Add Products
 {% endblock title %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
-            <div class="card shadow-sm border-light">
-                <div class="card-body">
-                    <h1 class="text-center mb-4">
-                        Add Product
-                    </h1>
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.name.id_for_label }}" class="form-label">
-                                    Product Name
-                                </label>
-                                {{ form.name }}
-                                <div class="text-danger">{{ form.name.errors }}</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.category.id_for_label }}" class="form-label">
-                                    Category
-                                </label>
-                                {{ form.category }}
-                                <div class="text-danger">{{ form.category.errors }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col mb-3">
-                                <label for="{{ form.description.id_for_label }}" class="form-label">
-                                    Description
-                                </label>
-                                {{ form.description }}
-                                <div class="text-danger">{{ form.description.errors }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.quantity.id_for_label }}" class="form-label">
-                                    Quantity
-                                </label>
-                                {{ form.quantity }}
-                                <div class="text-danger">{{ form.quantity.errors }}</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.min_stock_level.id_for_label }}" class="form-label">
-                                    Minimum Stock Level
-                                </label>
-                                {{ form.min_stock_level }}
-                                <div class="text-danger">{{ form.min_stock_level.errors }}</div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.price.id_for_label }}" class="form-label">
-                                    Selling Price
-                                </label>
-                                {{ form.price }}
-                                <div class="text-danger">{{ form.price.errors }}</div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.expiring_date.id_for_label }}" class="form-label">
-                                    Expiring Date
-                                </label>
-                                {{ form.expiring_date }}
-                                <div class="text-danger">{{ form.expiring_date.errors }}</div>
-                            </div>
-                        </div>
-                        <div class="form-group text-center">
-                            <button class="btn btn-success btn-lg" type="submit">
-                                <i class="fas fa-check"></i> Submit
-                            </button>
-                        </div>
-                    </form>
-                </div>
+<!-- Header Section (matching saleslist.html design) -->
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-12 text-center">
+                <h4 class="display-6 mb-0 text-success">Add Products</h4>
             </div>
         </div>
     </div>
 </div>
+
+<div class="container px-3">
+    <form method="POST" enctype="multipart/form-data" id="product-formset">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div id="formset-container">
+            {% for form in formset %}
+            <div class="product-form mb-4">
+                <h5>Product {{ forloop.counter }}</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Product Name</label>
+                        {{ form.name }}
+                        <div class="text-danger">{{ form.name.errors }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                        {{ form.category }}
+                        <div class="text-danger">{{ form.category.errors }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label">Quantity</label>
+                        {{ form.quantity }}
+                        <div class="text-danger">{{ form.quantity.errors }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.min_stock_level.id_for_label }}" class="form-label">Minimum Stock Level</label>
+                        {{ form.min_stock_level }}
+                        <div class="text-danger">{{ form.min_stock_level.errors }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.price.id_for_label }}" class="form-label">Selling Price</label>
+                        {{ form.price }}
+                        <div class="text-danger">{{ form.price.errors }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.expiring_date.id_for_label }}" class="form-label">Expiring Date</label>
+                        {{ form.expiring_date }}
+                        <div class="text-danger">{{ form.expiring_date.errors }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.purchase_price.id_for_label }}" class="form-label">Purchase Price</label>
+                        {{ form.purchase_price }}
+                        <div class="text-danger">{{ form.purchase_price.errors }}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger remove-form">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="form-group text-center">
+            <button type="button" id="add-form" class="btn btn-success action-btn">Add Another Product</button>
+            <button class="btn btn-success action-btn" type="submit">Submit All</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .action-btn {
+        width: 200px; /* Consistent width */
+        margin: 0 10px; /* Optional spacing */
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('formset-container');
+        const addFormBtn = document.getElementById('add-form');
+        const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+        let formCount = parseInt(totalForms.value);
+
+        addFormBtn.addEventListener('click', function() {
+            const newForm = formsetContainer.firstElementChild.cloneNode(true);
+            const newIndex = formCount;
+
+            // Update field names and IDs
+            newForm.querySelectorAll('input, select, textarea').forEach(field => {
+                field.name = field.name.replace(/-\d+-/, `-${newIndex}-`);
+                field.id = field.id.replace(/-\d+-/, `-${newIndex}-`);
+                field.value = '';  // Clear values for new form
+            });
+
+            // Update product number dynamically
+            newForm.querySelector('h5').textContent = `Product ${newIndex + 1}`;
+            formsetContainer.appendChild(newForm);
+            formCount++;
+            totalForms.value = formCount;
+        });
+
+        formsetContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-form') && formCount > 1) {
+                e.target.closest('.product-form').remove();
+                formCount--;
+                totalForms.value = formCount;
+            }
+        });
+    });
+</script>
 {% endblock content %}

@@ -16,6 +16,7 @@ from django.urls import reverse
 from django.forms import model_to_dict
 from django_extensions.db.fields import AutoSlugField
 from phonenumber_field.modelfields import PhoneNumberField
+from django.db.models import functions
 
 
 
@@ -48,6 +49,7 @@ class Category(models.Model):
         String representation of the category.
         """
         return f"Category: {self.name}"
+    
 
     class Meta:
         verbose_name_plural = 'Categories'
@@ -62,6 +64,11 @@ class Item(models.Model):
     description = models.TextField(max_length=256)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.FloatField(default=0)
+    purchase_price = models.FloatField(
+        default=0,
+        verbose_name="Purchase Price",
+        help_text="Cost per one unit (e.g., per item)"
+    )
     expiring_date = models.DateTimeField(null=True, blank=True)
  
     
@@ -71,7 +78,7 @@ class Item(models.Model):
         String representation of the item.
         """
         return (
-            f"{self.name} - Category: {self.category}, "
+            f"{self.name} -  {self.category}, "
             
         )
 
@@ -93,6 +100,15 @@ class Item(models.Model):
     class Meta:
         ordering = ['name']
         verbose_name_plural = 'Items'
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                functions.Lower('name'),
+                name='unique_item_name_insensitive'
+            )
+        ]
+    
 
 
 """class Delivery(models.Model):

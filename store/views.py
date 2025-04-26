@@ -45,7 +45,7 @@ from django_tables2.export.views import ExportMixin
 from accounts.models import Profile, Vendor
 from transactions.models import Sale, SaleDetail
 from .models import Category, Item,  StoreInventory, StockAlert, Store
-from .forms import ItemForm, CategoryForm
+from .forms import CategoryForm
 from .tables import ItemTable
 from django.views.generic import TemplateView
 from bills.models import InternalUsage, UsageDetail
@@ -53,8 +53,20 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, UpdateView
 from .models import Item, StoreInventory
 from .forms import ItemForm
+import logging
+from datetime import timedelta
+from django.forms import formset_factory
+
+from django.views import View
 
 
+logger = logging.getLogger(__name__)
+
+def is_ajax(request):
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
+ # Adjust imports as needed
 
 @login_required
 def dashboard(request):
@@ -63,7 +75,6 @@ def dashboard(request):
     inventories = current_store.inventories.select_related('item')
     items = [inv.item for inv in inventories]
     sales = Sale.objects.filter(store=current_store)
-    #deliveries = Delivery.objects.filter(store=current_store).select_related('item', 'store')
 
     total_items = sum(inv.quantity for inv in inventories)
     items_count = len(items)
@@ -75,17 +86,25 @@ def dashboard(request):
     total_quantity_sold_today = SaleDetail.objects.filter(sale__in=daily_sales).aggregate(total=Sum('quantity'))['total'] or 0
     total_revenue_today = daily_sales.aggregate(total=Sum('grand_total'))['total'] or 0
 
+    # Category counts (unchanged)
     category_counts = Category.objects.annotate(
         item_count=Count('item', filter=Q(item__store_inventories__store=current_store))
     ).values("name", "item_count")
     categories = [cat["name"] for cat in category_counts]
     category_counts_list = [cat["item_count"] for cat in category_counts]
 
+    # Sales over time data
     sale_dates = Sale.objects.filter(store=current_store).values("date_added__date").annotate(
         total_sales=Sum("grand_total")
     ).order_by("date_added__date")
     sale_dates_labels = [date["date_added__date"].strftime("%Y-%m-%d") for date in sale_dates]
     sale_dates_values = [float(date["total_sales"]) for date in sale_dates]
+
+    # NEW: Calculate initial date range (last 30 days) for the chart
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+    initial_min_date = last_30_days.strftime("%Y-%m-%d")
+    initial_max_date = today.strftime("%Y-%m-%d")
 
     unread_alerts_count = StockAlert.objects.filter(store_inventory__store=current_store, is_read=False).count()
 
@@ -96,7 +115,6 @@ def dashboard(request):
         "items_count": items_count,
         "total_items": total_items,
         "vendors": Vendor.objects.all(),
-       # "delivery": deliveries,
         "sales": sales,
         "categories": categories,
         "category_counts": category_counts_list,
@@ -105,6 +123,9 @@ def dashboard(request):
         "unread_alerts_count": unread_alerts_count,
         "total_quantity_sold_today": total_quantity_sold_today,
         "total_revenue_today": total_revenue_today,
+        # NEW: Add initial date range to context
+        "initial_min_date": initial_min_date,
+        "initial_max_date": initial_max_date,
     }
     return render(request, "store/dashboard.html", context)
 
@@ -227,27 +248,34 @@ class ProductDetailView(LoginRequiredMixin, FormMixin, DetailView):
 
 
 
-class ProductCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
-    model = Item
-    form_class = ItemForm
-    template_name = "store/productcreate.html"
-    success_url = "/products"
+# ... other imports and views ...
+class ProductCreateView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def get(self, request):
+        ItemFormSet = formset_factory(ItemForm, extra=1)  # Start with one empty form
+        formset = ItemFormSet()
+        return render(request, 'store/productcreate.html', {'formset': formset})
+
+    def post(self, request):
+        ItemFormSet = formset_factory(ItemForm)
+        formset = ItemFormSet(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                if form.has_changed():  # Only save forms with data
+                    item = form.save()
+                    quantity = form.cleaned_data.get('quantity', 0)
+                    min_stock_level = form.cleaned_data.get('min_stock_level', 0)
+                    store = request.user.store
+                    StoreInventory.objects.create(
+                        store=store,
+                        item=item,
+                        quantity=quantity,
+                        min_stock_level=min_stock_level
+                    )
+            return redirect('productslist')
+        return render(request, 'store/productcreate.html', {'formset': formset})
 
     def test_func(self):
         return self.request.user.is_superuser
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        quantity = form.cleaned_data.get('quantity', 0)
-        min_stock_level = form.cleaned_data.get('min_stock_level', 0)
-        store = self.request.user.store
-        StoreInventory.objects.create(
-            store=store,
-            item=self.object,
-            quantity=quantity,
-            min_stock_level=min_stock_level
-        )
-        return response
 
 class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Item
@@ -610,7 +638,7 @@ class PerformanceStatsView(LoginRequiredMixin, TemplateView):
     
 
 
-from django.contrib.auth.mixins import UserPassesTestMixin
+
 from django.views.generic import TemplateView
 from django.core.exceptions import PermissionDenied
 

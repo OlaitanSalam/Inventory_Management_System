@@ -21,9 +21,9 @@
                                 <th scope="row">Staff role</th>
                                 <td>
                                     <span class="badge badge-pill bg-soft-success text-success me-2">
-                                    {% if user.profile.role == 'AD' %}
+                                    {% if profile.role == 'AD' %}
                                     Admin
-                                    {% elif user.profile.role == 'EX' %}
+                                    {% elif profile.role == 'EX' %}
                                     Executive
                                     {% else %}
                                     Operative
@@ -32,25 +32,25 @@
                             </tr>
                             <tr>
                                 <th scope="row">First name</th>
-                                <td>{{ user.profile.first_name }}</td>
+                                <td>{{ profile.first_name }}</td>
                             </tr>
                             <tr>
                                 <th scope="row">Last name</th>
-                                <td>{{ user.profile.last_name }}</td>
+                                <td>{{ profile.last_name }}</td>
                             </tr>
                             <tr>
                                 <th scope="row">Email</th>
-                                <td>{{ user.email }}</td>
+                                <td>{{ email }}</td>
                             </tr>
                             <tr>
                                 <th scope="row">Phone</th>
-                                <td>{{ user.profile.telephone }}</td>
+                                <td>{{ profile.telephone }}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div class="col-md-4">
-                    <img class="rounded-pill img-fluid" src="{{ user.profile.profile_picture.url }}" alt="profile-image">
+                    <img class="rounded-pill img-fluid" src="{{ profile.profile_picture.url }}" alt="profile-image">
                 </div>
             </div>
         </div>

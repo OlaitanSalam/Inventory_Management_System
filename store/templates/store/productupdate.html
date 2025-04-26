@@ -65,6 +65,7 @@
                                 {{ form.price }}
                                 <div class="text-danger">{{ form.price.errors }}</div>
                             </div>
+                            
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.expiring_date.id_for_label }}" class="form-label">
                                     Expiring Date
@@ -73,14 +74,11 @@
                                 <div class="text-danger">{{ form.expiring_date.errors }}</div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.vendor.id_for_label }}" class="form-label">
-                                    Vendor
-                                </label>
-                                {{ form.vendor }}
-                                <div class="text-danger">{{ form.vendor.errors }}</div>
-                            </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.purchase_price.id_for_label }}" class="form-label">Purchase Price</label>
+                            {{ form.purchase_price }}
+                            <div class="text-danger">{{ form.purchase_price.errors }}</div>
                         </div>
                         <div class="form-group text-center">
                             <button class="btn btn-success btn-lg" type="submit">

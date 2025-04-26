@@ -311,6 +311,7 @@ $(document).ready(function () {
             grand_total: $('input[name="grand_total"]').val(),
             amount_paid: $('input[name="amount_paid"]').val(),
             amount_change: amountChange,
+            customer: $('#customer').val(),
             items: sale.products.items.map(item => ({
                 id: item.id,
                 price: item.price,

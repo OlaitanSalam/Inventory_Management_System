@@ -1,6 +1,6 @@
 {% extends 'store/base.html' %}
 {% load static %}
-
+{% load l10n %}
 {% block content %}
 <!-- Header Section -->
 <div class="container my-4">
@@ -37,7 +37,9 @@
             {% for vendor in vendors %}
             <tr>
                 <td>{{ vendor.name }}</td>
+                {% localize off %}
                 <td>{{ vendor.phone_number }}</td>
+                {% endlocalize %}
                 <td>{{ vendor.address }}</td>
                 <td>
                     <a href="{% url 'vendor-update' vendor.pk %}" class="btn btn-outline-warning btn-sm">

@@ -151,6 +151,7 @@
 			<p class="bold">{{ sale.store.address }}</p>
 			<p class="bold">Tel: {{ sale.store.contact_number }}</p>
 			<br>
+			<p>Customer: {{ sale.get_customer_display }}</p>
 			<p>Date: {{ sale.date_added|date:"Y/m/d H:i:s" }}</p>
 			<p>Cashier: {{ sale.cashier.first_name }}</p>
 			<p>Receipt No: {{ sale.receipt_number }}</p>
