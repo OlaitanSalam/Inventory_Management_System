@@ -3,6 +3,51 @@
 {% load render_table from django_tables2 %}
 {% load querystring from django_tables2 %}
 {% block title %}Products{% endblock title %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-link {
+        color: #b038a0 !important;
+    }
+    
+    .page-link:hover {
+        color: #9a3089 !important;
+    }
+</style>
+{% endblock stylesheets %}
+
 {% block content %}
 <div class="container">
     <!-- Header Section -->
@@ -10,21 +55,27 @@
         <div class="card shadow-sm rounded p-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h4 class="display-6 mb-0 text-success">Products</h4>
+                    <h4 class="display-6 mb-0 text-brand">Products</h4>
                     <small class="text-muted">Showing inventory for {{ request.user.store.name }}</small>
                 </div>
                 <div class="col-md-6 d-flex justify-content-end gap-2">
-                    <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="{% url 'product-create' %}">
-                        <i class="fa-solid fa-plus"></i> Add Item
+                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'add_existing_items' %}">
+                        <i class="fa-solid fa-plus"></i> Add Existing Items
                     </a>
-                    <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="{% querystring '_export'='xlsx' %}">
+                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'bulk_item_upload' %}">
+                        <i class="fa-solid fa-plus"></i> Add Bulk Items
+                    </a>
+                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'product-create' %}">
+                        <i class="fa-solid fa-plus"></i> Add New Item
+                    </a>
+                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% querystring '_export'='xlsx' %}">
                         <i class="fa-solid fa-download"></i> Export to Excel
                     </a>
                 </div>
             </div>
             <form class="input-group mt-4" role="search" id="searchform" action="{% url 'item_search_list_view' %}" method="get" accept-charset="utf-8">
                 <input id="searchbox" name="q" type="text" class="form-control border-0 rounded-pill shadow-sm" placeholder="Find products">
-                <button class="btn btn-outline-success rounded-pill shadow-sm" type="submit">
+                <button class="btn btn-outline-brand rounded-pill shadow-sm" type="submit">
                     <i class="fa-solid fa-search"></i>
                 </button>
             </form>
@@ -35,7 +86,6 @@
         <table class="table table-bordered table-striped table-hover table-sm">
             <thead class="thead-light">
                 <tr>
-                    
                     <th scope="col">Name</th>
                     <th scope="col">Category</th>
                     <th scope="col">Available Qty</th>
@@ -47,7 +97,6 @@
             <tbody>
                 {% for entry in items_with_quantities %}
                 <tr>
-                    
                     <td>{{ entry.item.name }}</td>
                     <td>{{ entry.item.category }}</td>
                     <td>{{ entry.quantity }}</td>

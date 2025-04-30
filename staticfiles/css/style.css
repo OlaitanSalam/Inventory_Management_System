@@ -20,8 +20,7 @@
   --sidebar-expanded-width: 230px;
   --sidebar-collapsed-width: 100px;
   --sidebar-header-bg: #212529;
-  --nav-link-color: #adb5bd;
-  --nav-link-active-bg: #495057;
+  
   --dropdown-menu-bg: #495057;
   --dropdown-item-color: #adb5bd;
   --dropdown-item-active-bg: #6c757d;
@@ -223,3 +222,7 @@ a {
 .navbar .navbar-nav > li > a > i {
   font-size: 18px;
 }
+
+
+
+

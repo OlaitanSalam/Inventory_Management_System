@@ -5,12 +5,55 @@
 {% block stylesheets %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .bg-brand {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .select2-container--bootstrap4 .select2-results__option--highlighted, 
+    
+    .select2-container--bootstrap4 .select2-results__option--highlighted.select2-results__option[aria-selected=true] {
+        background-color: #b038a0 !important;
+    }
+    
+    .form-control:focus {
+        border-color: #b038a0;
+        box-shadow: 0 0 0 0.25rem rgba(176, 56, 160, 0.25);
+    }
+</style>
 {% endblock stylesheets %}
 
 {% block content %}
 <div class="container py-5">
     <div class="mb-4">
-        <a href="{% url 'purchaseorderslist' %}" class="btn btn-outline-success">
+        <a href="{% url 'purchaseorderslist' %}" class="btn btn-outline-brand">
             <i class="fas fa-arrow-left me-2"></i> Go back
         </a>
     </div>
@@ -19,7 +62,7 @@
         <div class="row">
             <div class="col-lg-8 mb-4">
                 <div class="card border-light shadow-sm">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-brand">
                         <h5 class="mb-0">Purchase Items</h5>
                     </div>
                     <div class="card-body">
@@ -50,7 +93,7 @@
 
             <div class="col-lg-4 mb-4">
                 <div class="card border-light shadow-sm">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-brand">
                         <h5 class="mb-0">Purchase Order Details</h5>
                     </div>
                     <div class="card-body">
@@ -79,7 +122,7 @@
                             <label for="total_value" class="form-label">Total Value</label>
                             <input name="total_value" type="number" class="form-control" id="total_value" readonly>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Create Purchase Order</button>
+                        <button type="submit" class="btn btn-brand w-100">Create Purchase Order</button>
                     </div>
                 </div>
             </div>
@@ -227,9 +270,7 @@
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    
-
- purchaseOrder.items = [];
+                    purchaseOrder.items = [];
                     purchaseOrder.list_item();
                 }
             });

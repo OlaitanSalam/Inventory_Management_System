@@ -15,7 +15,10 @@ from .views import (
     SaleCreateView,
     SaleDeleteView,
     export_sales_to_excel,
-    export_purchases_to_excel
+    export_purchases_to_excel,
+    TransferListView,  # New
+    TransferDetailView,  # New
+    TransferCreateView,  # New
 )
 
 # URL patterns
@@ -32,6 +35,11 @@ urlpatterns = [
     path('sale/<int:pk>/', SaleDetailView.as_view(), name='sale-detail'),
     path('new-sale/', SaleCreateView, name='sale-create'),
     path('sale/<int:pk>/delete/', SaleDeleteView.as_view(), name='sale-delete'),
+
+    # --- New Transfer URLs ---
+    path('transfers/', TransferListView.as_view(), name='transferslist'),
+    path('transfer/<int:pk>/', TransferDetailView.as_view(), name='transfer-detail'),
+    path('new-transfer/', TransferCreateView, name='transfer-create'),
 
     # Sales and purchases export
     path('sales/export/', export_sales_to_excel, name='sales-export'),

@@ -1,15 +1,63 @@
 {% extends 'store/base.html' %}
 
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-link {
+        color: #b038a0 !important;
+    }
+    
+    .page-link:hover {
+        color: #9a3089 !important;
+    }
+    
+    .table th, .table td {
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Header Section -->
 <div class="container my-4">
     <div class="card shadow-sm rounded p-3">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <h4 class="display-6 mb-0 text-success">Categories</h4>
+                <h4 class="display-6 mb-0 text-brand">Categories</h4>
             </div>
             <div class="col-md-6 d-flex justify-content-end gap-2">
-                <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="{% url 'category-create' %}">
+                <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'category-create' %}">
                     <i class="fa-solid fa-plus"></i> Add Category
                 </a>
             </div>
@@ -17,11 +65,6 @@
     </div>
 </div>
 <div class="container px-3">
-    <style>
-        .table th, .table td {
-            text-align: center;
-        }
-    </style>
     <table class="table table-sm table-striped table-bordered">
         <thead class="thead-light">
             <tr>
@@ -36,7 +79,7 @@
                 <td>{{ category.pk }}</td>
                 <td>{{ category.name }}</td>
                 <td>
-                    <a href="{% url 'category-detail' category.pk %}" class="btn btn-outline-primary btn-sm">
+                    <a href="{% url 'category-detail' category.pk %}" class="btn btn-outline-brand btn-sm">
                         <i class="fa-solid fa-info-circle me-2"></i> View Details
                     </a>
                 </td>

@@ -1,0 +1,150 @@
+<!-- transactions/transfers_list.html -->
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Transfers{% endblock title %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-link {
+        color: #b038a0 !important;
+    }
+    
+    .page-link:hover {
+        color: #9a3089 !important;
+    }
+    
+    .table th, .table td {
+        text-align: center;
+    }
+    
+    .btn-custom {
+        padding: 8px 20px;
+        margin: 4px;
+    }
+    
+    .btn-outline-info {
+        color: #b038a0;
+        border-color: #b038a0;
+    }
+    
+    .btn-outline-info:hover {
+        background-color: #b038a0;
+        color: white;
+        border-color: #b038a0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="display-6 mb-0 text-brand">Store Transfers</h4>
+            </div>
+            <div class="col-md-6 d-flex justify-content-end gap-2">
+                <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'transfer-create' %}">
+                    <i class="fa-solid fa-plus"></i> Add Transfer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container px-3">
+    <table class="table table-bordered table-striped table-hover table-sm">
+        <thead class="thead-light">
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Destination Store</th>
+                <th>Sub Total</th>
+                <th>Grand Total</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transfer in transfers %}
+            <tr>
+                <td>{{ transfer.id }}</td>
+                <td>{{ transfer.date_added|date:"Y-m-d H:i:s" }}</td>
+                <td>{{ transfer.destination_store.name }}</td>
+                <td>₦{{ transfer.sub_total }}</td>
+                <td>₦{{ transfer.grand_total }}</td>
+                <td>
+                    <a class="btn btn-outline-info btn-sm" href="{% url 'transfer-detail' transfer.id %}">
+                        <i class="fa-solid fa-eye"></i> View Details
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-center mt-4">
+        {% if is_paginated %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">«</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Previous">
+                        <span aria-hidden="true">«</span>
+                    </span>
+                </li>
+                {% endif %}
+                {% for i in paginator.page_range %}
+                {% if page_obj.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">»</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Next">
+                        <span aria-hidden="true">»</span>
+                    </span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

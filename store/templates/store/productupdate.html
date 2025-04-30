@@ -5,15 +5,42 @@
     Update Product
 {% endblock title %}
 
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container my-5">
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-12 text-center">
+                <h4 class="display-6 mb-0 text-brand">Update Product</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container px-3">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <div class="card shadow-sm border-light">
                 <div class="card-body">
-                    <h1 class="text-center mb-4">
-                        Update Product
-                    </h1>
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="row">
@@ -81,7 +108,7 @@
                             <div class="text-danger">{{ form.purchase_price.errors }}</div>
                         </div>
                         <div class="form-group text-center">
-                            <button class="btn btn-success btn-lg" type="submit">
+                            <button class="btn btn-brand btn-lg" type="submit">
                                 <i class="fas fa-check"></i> Submit
                             </button>
                         </div>

@@ -6,22 +6,76 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% load static %}
+        <link rel="icon" href="{% static 'images/logo/Hospitalita.jpg' %}" type="image/png">
 
         <link rel="stylesheet" href="{% static 'fontawesome/css/all.css' %}" type="text/css">
         <link rel="stylesheet" type="text/css" href="https://unpkg.com/@webpixels/css@1.1.5/dist/index.css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
         <title>IMS: Logout</title>
+        <style>
+            :root {
+                --brand-color: #b038a0;
+                --brand-hover: #9a3089;
+            }
+            
+            body {
+                background-color: #f8f9fa;
+            }
+            
+            .logout-container {
+                max-width: 500px;
+                margin: 100px auto;
+            }
+            
+            .card {
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            
+            .card-header {
+                background-color: var(--brand-color);
+                color: white;
+                text-align: center;
+                padding: 20px;
+            }
+            
+            .card-body {
+                padding: 30px;
+            }
+            
+            .btn-brand {
+                background-color: var(--brand-color);
+                border-color: var(--brand-color);
+                color: white;
+            }
+            
+            .btn-brand:hover {
+                background-color: var(--brand-hover);
+                border-color: var(--brand-hover);
+            }
+            
+            .alert-brand {
+                background-color: rgba(176, 56, 160, 0.1);
+                color: var(--brand-color);
+                border-color: rgba(176, 56, 160, 0.2);
+            }
+        </style>
     </head>
     <body>
-       <div class="row my-4">
-            <div class="col-md-6 offset-md-3">
-                <div class="border p-3 bg-white">
-                    <h4>You have logged out</h4>
-                    <hr>
-                    <div class="alert alert-info">
-                        <h1>See you soon!</h1>
+       <div class="logout-container">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="m-0">Logged Out</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-brand mb-4">
+                        <h4 class="mb-0">Thank you for using our system!</h4>
+                        <p class="mb-0 mt-2">You have been successfully logged out.</p>
                     </div>
-                    <a class="btn btn-outline-success" href="{% url 'user-login' %}"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+                    <a class="btn btn-brand w-100" href="{% url 'user-login' %}">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> Log In Again
+                    </a>
                 </div>
             </div>
         </div>

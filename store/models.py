@@ -192,3 +192,16 @@ class StockAlert(models.Model):
 
     def __str__(self):
         return f"Alert for {self.store_inventory.item.name} in {self.store_inventory.store.name}"
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from accounts.models import Profile
+from .models import Store
+
+@receiver(post_save, sender=Profile)
+def create_user_store(sender, instance, created, **kwargs):
+    if created and not instance.store:
+        store = Store.objects.create(name=f"{instance.email}'s Store")
+        instance.store = store
+        instance.save()

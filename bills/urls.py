@@ -10,7 +10,8 @@ from .views import (
 urlpatterns = [
     path('usages/', InternalUsageListView.as_view(), name='usage_list'),
     path('usage/new/', InternalUsageCreateView, name='usage_create'),
-    path('usage/<int:pk>/update/', InternalUsageUpdateView.as_view(), name='usage_update'),
-    path('usage/<int:pk>/delete/', InternalUsageDeleteView.as_view(), name='usage_delete'),
-    path('usage/<int:pk>/detail/', InternalUsageDetailView.as_view(), name='usage_detail')
+    path('usage/<slug:slug>/update/', InternalUsageUpdateView.as_view(), name='usage_update'),
+    path('usage/<slug:slug>/delete/', InternalUsageDeleteView.as_view(), name='usage_delete'),
+    path('usage/<slug:slug>/detail/', InternalUsageDetailView.as_view(), name='usage_detail')
+
 ]

@@ -63,6 +63,46 @@ class SaleDetail(models.Model):
 
     def __str__(self):
         return f"Detail ID: {self.id} | Sale ID: {self.sale.id} | Quantity: {self.quantity}"
+    
+# --- New Transfer Model ---
+class Transfer(models.Model):
+    date_added = models.DateTimeField(auto_now_add=True, verbose_name="Transfer Date")
+    sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='transfers_sent', null=True, blank=True)  # Source store
+    destination_store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='transfers_received', null=True, blank=True)  # Target store
+    cashier = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True)
+    transfer_number = models.CharField(max_length=20, unique=True, editable=False)
+
+    class Meta:
+        db_table = "transfers"
+        verbose_name = "Transfer"
+        verbose_name_plural = "Transfers"
+        ordering = ['-date_added']
+
+    def __str__(self):
+        return f"Transfer ID: {self.id} | Grand Total: {self.grand_total} | Date: {self.date_added}"
+
+    def save(self, *args, **kwargs):
+        if not self.transfer_number:
+            self.transfer_number = uuid.uuid4().hex[:10].upper()
+        super().save(*args, **kwargs)
+
+# --- New TransferDetail Model ---
+class TransferDetail(models.Model):
+    transfer = models.ForeignKey(Transfer, on_delete=models.CASCADE, db_column="transfer", related_name="transferdetail_set")
+    item = models.ForeignKey(Item, on_delete=models.DO_NOTHING, db_column="item")
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField()
+    total_detail = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = "transfer_details"
+        verbose_name = "Transfer Detail"
+        verbose_name_plural = "Transfer Details"
+
+    def __str__(self):
+        return f"Detail ID: {self.id} | Transfer ID: {self.transfer.id} | Quantity: {self.quantity}"
 
 class PurchaseOrder(models.Model):
     slug = AutoSlugField(unique=True, populate_from="vendor")

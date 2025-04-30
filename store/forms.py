@@ -57,7 +57,7 @@ class ItemForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data.get('name')
         if Item.objects.filter(name__iexact=name).exists() and not self.instance.pk:
-            raise forms.ValidationError("An item with this name already exists. Access your store inventory on the Admin page to update it.")
+            raise forms.ValidationError("An item with this name already exists, Add item to existing store inventory instead.")
         return name    
 
 class CategoryForm(forms.ModelForm):
@@ -78,41 +78,31 @@ class CategoryForm(forms.ModelForm):
             'name': 'Category Name',
         }
 
-'''class DeliveryForm(forms.ModelForm):
-    class Meta:
-        model = Delivery
-        fields = [
-            'item',
-            'customer_name',
-            'phone_number',
-            'location',
-            'date',
-            'is_delivered'
-        ]
-        widgets = {
-            'item': forms.Select(attrs={
-                'class': 'form-control',
-                'placeholder': 'Select item',
-            }),
-            'customer_name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter customer name',
-            }),
-            'phone_number': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter phone number',
-            }),
-            'location': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter delivery location',
-            }),
-            'date': forms.DateTimeInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Select delivery date and time',
-                'type': 'datetime-local'
-            }),
-            'is_delivered': forms.CheckboxInput(attrs={
-                'class': 'form-check-input',
-                'label': 'Mark as delivered',
-            }),
-        }'''
+class AddExistingItemForm(forms.Form):
+    """
+    A form for adding an existing item to a store's inventory.
+    """
+    item = forms.ModelChoiceField(
+        queryset=Item.objects.none(),  # Queryset will be set dynamically
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Select Item"
+    )
+    quantity = forms.IntegerField(
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        required=True,
+        label="Quantity"
+    )
+    min_stock_level = forms.IntegerField(
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        required=True,
+        label="Minimum Stock Level"
+    )
+
+    def __init__(self, *args, **kwargs):
+        store = kwargs.pop('store')
+        super().__init__(*args, **kwargs)
+        # Only show items not already in the store's inventory
+        existing_item_ids = StoreInventory.objects.filter(store=store).values_list('item_id', flat=True)
+        self.fields['item'].queryset = Item.objects.exclude(id__in=existing_item_ids)

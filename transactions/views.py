@@ -2,7 +2,7 @@ import json
 import logging
 from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db import transaction
 from dateutil.parser import parse
 from django.utils import timezone
@@ -11,7 +11,7 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from openpyxl import Workbook
 from store.models import Item, StoreInventory, StockAlert, Store
-from .models import Sale, SaleDetail, PurchaseOrder, PurchaseDetail, TaxRate
+from .models import Sale, SaleDetail, PurchaseOrder, PurchaseDetail, TaxRate, Transfer, TransferDetail
 from accounts.models import Vendor
 from store.views import update_stock_and_check_alert
 
@@ -344,3 +344,144 @@ class PurchaseOrderDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteVie
 
     def test_func(self):
         return self.request.user.is_superuser
+    
+
+# --- New TransferCreateView ---
+def TransferCreateView(request):
+    # Restrict access to central store users only
+    if not request.user.store.central:
+        return redirect('saleslist')  # Redirect non-central users to sales list
+
+    context = {
+        "active_icon": "transfers",
+        "branch_stores": Store.objects.exclude(id=request.user.store.id),  # All stores except central
+        
+    }
+
+    if request.method == 'POST':
+        if is_ajax(request):
+            try:
+                data = json.loads(request.body)
+                logger.info(f"Received data: {data}")
+
+                required_fields = [
+                    'sub_total', 'grand_total',
+                     'items', 'destination_store'
+                ]
+                for field in required_fields:
+                    if field not in data:
+                        raise ValueError(f"Missing required field: {field}")
+
+                destination_store = Store.objects.get(id=data['destination_store'])
+
+                transfer_attributes = {
+                    "sub_total": float(data["sub_total"]),
+                    "grand_total": float(data["grand_total"]),
+                    
+                    "store": request.user.store,  # Central store as source
+                    "destination_store": destination_store,  # Branch store as target
+                    "cashier": request.user,
+                }
+
+                with transaction.atomic():
+                    new_transfer = Transfer.objects.create(**transfer_attributes)
+                    logger.info(f"Transfer created: {new_transfer}")
+
+                    items = data["items"]
+                    if not isinstance(items, list):
+                        raise ValueError("Items should be a list")
+
+                    for item in items:
+                        if not all(k in item for k in ["id", "price", "quantity", "total_item"]):
+                            raise ValueError("Item is missing required fields")
+
+                        item_instance = Item.objects.get(id=int(item["id"]))
+                        
+                        # Deduct from central store inventory
+                        central_inventory = StoreInventory.objects.filter(
+                            item=item_instance,
+                            store=new_transfer.store
+                        ).first()
+                        
+                        if not central_inventory or central_inventory.quantity < int(item["quantity"]):
+                            raise ValueError(f"Not enough stock for item: {item_instance.name} in central store")
+
+                        update_stock_and_check_alert(central_inventory, -int(item["quantity"]))
+
+                        # Add to destination store inventory
+                        destination_inventory, created = StoreInventory.objects.get_or_create(
+                            item=item_instance,
+                            store=destination_store,
+                            defaults={'quantity': 0}
+                        )
+                        destination_inventory.quantity += int(item["quantity"])
+                        destination_inventory.save()
+
+                        detail_attributes = {
+                            "transfer": new_transfer,
+                            "item": item_instance,
+                            "price": float(item["price"]),
+                            "quantity": int(item["quantity"]),
+                            "total_detail": float(item["total_item"])
+                        }
+                        TransferDetail.objects.create(**detail_attributes)
+                        logger.info(f"Transfer detail created: {detail_attributes}")
+
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Transfer created successfully!',
+                    'redirect': reverse('transfer-detail', args=[new_transfer.id])
+                })
+
+            except json.JSONDecodeError:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid JSON format in request body!'
+                }, status=400)
+            except Item.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Item does not exist!'
+                }, status=400)
+            except Store.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Destination store does not exist!'
+                }, status=400)
+            except ValueError as ve:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Value error: {str(ve)}'
+                }, status=400)
+            except TypeError as te:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Type error: {str(te)}'
+                }, status=400)
+            except Exception as e:
+                logger.error(f"Exception during transfer creation: {e}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'There was an error during the creation: {str(e)}'
+                }, status=500)
+
+    return render(request, "transactions/transfer_create.html", context)
+
+# --- New TransferDetailView ---
+class TransferDetailView(LoginRequiredMixin, DetailView):
+    model = Transfer
+    template_name = "transactions/transferdetail.html"
+
+    def get_queryset(self):
+        return Transfer.objects.filter(store=self.request.user.store)
+
+# --- New TransferListView ---
+class TransferListView(LoginRequiredMixin, ListView):
+    model = Transfer
+    template_name = "transactions/transfers_list.html"
+    context_object_name = "transfers"
+    paginate_by = 10
+    ordering = ['date_added']
+
+    def get_queryset(self):
+        return Transfer.objects.filter(store=self.request.user.store)

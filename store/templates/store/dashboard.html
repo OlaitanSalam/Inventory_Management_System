@@ -70,57 +70,102 @@
                         </a>
                     </div>
                     
-                    <!-- Items Sold Today Card -->
-<div class="col-xl-3 col-sm-6 col-12" id="sales">
-    <a href="{% url 'saleslist' %}">
-        <div class="card shadow border-0">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col">
-                        <span class="h6 font-semibold text-muted text-sm d-block mb-2">Items Sold Today</span>
-                        <span class="h3 font-bold mb-0">{{ total_quantity_sold_today }}</span>
+                    {% if is_central_store %}
+                    <!-- Items Transferred Today Card (Central Store) -->
+                    <div class="col-xl-3 col-sm-6 col-12" id="transfers">
+                        <a href="{% url 'transferslist' %}">
+                            <div class="card shadow border-0">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <span class="h6 font-semibold text-muted text-sm d-block mb-2">Items Transferred Today</span>
+                                            <span class="h3 font-bold mb-0">{{ total_quantity_transferred_today }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-warning text-white text-lg rounded-circle">
+                                                <i class="fa fa-truck"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 mb-0 text-sm">
+                                        <span class="text-nowrap text-xs text-muted">Updated daily</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                    <div class="col-auto">
-                        <div class="icon icon-shape bg-warning text-white text-lg rounded-circle">
-                            <i class="fa fa-shopping-cart"></i>
+
+                    <!-- Today's Transfer Revenue Card (Central Store) -->
+                    <div class="col-xl-3 col-sm-6 col-12" id="transfer-revenue">
+                        <div class="card shadow border-0">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <span class="h6 font-semibold text-muted text-sm d-block mb-2">Today's Transfer Revenue</span>
+                                        <span class="h3 font-bold mb-0">₦{{ total_transfer_revenue_today }}</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="icon icon-shape bg-info text-white text-lg rounded-circle">
+                                            <i class="fa fa-dollar-sign"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 mb-0 text-sm">
+                                    <span class="text-nowrap text-xs text-muted">Updated daily</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <!-- Optional: Remove or adjust percentage if not needed -->
-                <div class="mt-2 mb-0 text-sm">
-                    <span class="text-nowrap text-xs text-muted">Updated daily</span>
-                </div>
-            </div>
-        </div>
-    </a>
-</div>
-
-<!-- Today's Revenue Card -->
-<div class="col-xl-3 col-sm-6 col-12" id="revenue">
-    <div class="card shadow border-0">
-        <div class="card-body">
-            <div class="row">
-                <div class="col">
-                    <span class="h6 font-semibold text-muted text-sm d-block mb-2">Today's Revenue</span>
-                    <span class="h3 font-bold mb-0">₦{{ total_revenue_today }}</span>
-                </div>
-                <div class="col-auto">
-                    <div class="icon icon-shape bg-info text-white text-lg rounded-circle">
-                        <i class="fa fa-dollar-sign"></i>
+                    {% else %}
+                    <!-- Items Sold Today Card (Branch Store) -->
+                    <div class="col-xl-3 col-sm-6 col-12" id="sales">
+                        <a href="{% url 'saleslist' %}">
+                            <div class="card shadow border-0">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col">
+                                            <span class="h6 font-semibold text-muted text-sm d-block mb-2">Items Sold Today</span>
+                                            <span class="h3 font-bold mb-0">{{ total_quantity_sold_today }}</span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="icon icon-shape bg-warning text-white text-lg rounded-circle">
+                                                <i class="fa fa-shopping-cart"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 mb-0 text-sm">
+                                        <span class="text-nowrap text-xs text-muted">Updated daily</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
                     </div>
-                </div>
-            </div>
-            <!-- Optional: Remove or adjust percentage if not needed -->
-            <div class="mt-2 mb-0 text-sm">
-                <span class="text-nowrap text-xs text-muted">Updated daily</span>
-            </div>
-        </div>
-    </div>
-</div>
+
+                    <!-- Today's Sales Revenue Card (Branch Store) -->
+                    <div class="col-xl-3 col-sm-6 col-12" id="revenue">
+                        <div class="card shadow border-0">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <span class="h6 font-semibold text-muted text-sm d-block mb-2">Today's Sales Revenue</span>
+                                        <span class="h3 font-bold mb-0">₦{{ total_sales_revenue_today }}</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="icon icon-shape bg-info text-white text-lg rounded-circle">
+                                            <i class="fa fa-dollar-sign"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 mb-0 text-sm">
+                                    <span class="text-nowrap text-xs text-muted">Updated daily</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% include 'store/charts.html' %}
             </div>
-            
         </main>
     </div>
 </div>

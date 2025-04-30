@@ -25,7 +25,10 @@ from .views import (
     CategoryDeleteView,
    NotificationListView,
    mark_alert_as_read, mark_all_alerts_as_read,
-    get_unread_alerts_count
+    get_unread_alerts_count,
+    BulkItemUploadView,
+    AddExistingItemToInventoryView
+
 )
 
 # URL patterns
@@ -138,6 +141,8 @@ path('notifications/', NotificationListView.as_view(), name='notifications'),
     path('reports/sales/', views.SalesReportView.as_view(), name='sales_report'),
     path('reports/performance/', views.PerformanceStatsView.as_view(), name='performance_stats'),
     path('reports/branch-comparison/', views.BranchSalesComparisonView.as_view(), name='branch_sales_comparison'),
+    path('bulk-upload/', BulkItemUploadView.as_view(), name='bulk_item_upload'),
+    path('add-existing-items/', views.AddExistingItemToInventoryView.as_view(), name='add_existing_items'),
 ]
 
 # Static media files configuration for development

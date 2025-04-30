@@ -41,7 +41,7 @@ def InternalUsageCreateView(request):
                     for item_data in items:
                         item = Item.objects.get(id=item_data['id'])
                         quantity = int(item_data['quantity'])
-                        price_per_item = float(item_data['price_per_item'])  # Added price per item
+                        price_per_item = float(item_data['price_per_item'])
                         inventory = StoreInventory.objects.get(item=item, store=usage.store)
                         if inventory.quantity < quantity:
                             raise ValueError(f"Not enough stock for {item.name}")
@@ -49,8 +49,8 @@ def InternalUsageCreateView(request):
                             usage=usage,
                             item=item,
                             quantity=quantity,
-                            price_per_item=price_per_item,  # Added to model
-                            total_price=quantity * price_per_item  # Calculated total price
+                            price_per_item=price_per_item,
+                            total_price=quantity * price_per_item
                         )
                         inventory.quantity -= quantity
                         inventory.save()

@@ -1,14 +1,25 @@
 {% extends "store/base.html" %}
 {% block title %}Performance Statistics{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .text-brand { color: #b038a0 !important; }
+    .btn-brand { background-color: #b038a0 !important; border-color: #b038a0 !important; color: white !important; }
+    .btn-brand:hover { background-color: #9a3089 !important; border-color: #9a3089 !important; }
+    .page-item.active .page-link { background-color: #b038a0 !important; border-color: #b038a0 !important; color: white !important; }
+    .page-link { color: #b038a0 !important; }
+    .page-link:hover { color: #9a3089 !important; }
+    .table th, .table td { text-align: center; }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Header Section -->
 <div class="container my-4">
     <div class="card shadow-sm rounded p-3">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <h4 class="display-6 mb-0 text-success">Performance Statistics</h4>
+                <h4 class="display-6 mb-0 text-brand">Performance Statistics</h4>
             </div>
-            <!-- No action buttons needed for this report -->
         </div>
     </div>
 </div>
@@ -18,9 +29,12 @@
             {% if request.user.is_superuser %}
             <div class="col-md-3">
                 <label for="store">Store</label>
-                <select name="store" id="store" class="form-control">
+                <select name="store" class="form-control">
                     {% for store in stores %}
-                    <option value="{{ store.id }}" {% if request.GET.store == store.id|stringformat:"s" or not request.GET.store and store.central %}selected{% endif %}>{{ store.name }}</option>
+                    <option value="{{ store.id }}" 
+                        {% if request.GET.store == store.id|stringformat:"s" or not request.GET.store and store.central %}selected{% endif %}>
+                        {{ store.name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -34,21 +48,21 @@
                 <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
             </div>
             <div class="col-md-3 align-self-end">
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn btn-brand">Filter</button>
             </div>
         </div>
     </form>
-    <style>
-        .table th, .table td {
-            text-align: center;
-        }
-    </style>
     <table class="table table-bordered table-striped table-hover table-sm">
         <thead class="thead-light">
             <tr>
                 <th>Item</th>
-                <th>Total Quantity Sold</th>
-                <th>Days Since Last Sale</th>
+                {% if is_central %}
+                    <th>Total Quantity Transferred</th>
+                    <th>Days Since Last Transfer</th>
+                {% else %}
+                    <th>Total Quantity Sold</th>
+                    <th>Days Since Last Sale</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -56,7 +70,7 @@
             <tr>
                 <td>{{ item.item__name }}</td>
                 <td>{{ item.total_quantity }}</td>
-                <td>{{ item.days_since_last_sale|default:"N/A" }}</td>
+                <td>{{ item.days_since_last|default:"N/A" }}</td>
             </tr>
             {% empty %}
             <tr><td colspan="3">No data available</td></tr>

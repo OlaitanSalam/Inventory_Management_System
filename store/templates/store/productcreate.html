@@ -5,13 +5,38 @@
     Add Products
 {% endblock title %}
 
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .action-btn {
+        width: 200px; /* Consistent width */
+        margin: 0 10px; /* Optional spacing */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Header Section (matching saleslist.html design) -->
 <div class="container my-4">
     <div class="card shadow-sm rounded p-3">
         <div class="row align-items-center">
             <div class="col-md-12 text-center">
-                <h4 class="display-6 mb-0 text-success">Add Products</h4>
+                <h4 class="display-6 mb-0 text-brand">Add Products</h4>
             </div>
         </div>
     </div>
@@ -75,23 +100,16 @@
                         <div class="text-danger">{{ form.purchase_price.errors }}</div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-danger remove-form">Remove</button>
+                <button type="button" class="btn btn-warning remove-form">Remove</button>
             </div>
             {% endfor %}
         </div>
         <div class="form-group text-center">
-            <button type="button" id="add-form" class="btn btn-success action-btn">Add Another Product</button>
-            <button class="btn btn-success action-btn" type="submit">Submit All</button>
+            <button type="button" id="add-form" class="btn btn-brand action-btn">Add Another Product</button>
+            <button class="btn btn-brand action-btn" type="submit">Submit All</button>
         </div>
     </form>
 </div>
-
-<style>
-    .action-btn {
-        width: 200px; /* Consistent width */
-        margin: 0 10px; /* Optional spacing */
-    }
-</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

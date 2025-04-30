@@ -7,6 +7,16 @@ class InternalUsage(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     store = models.ForeignKey(Store, on_delete=models.CASCADE)
     description = models.CharField(max_length=255, blank=True, null=True)
+    slug = models.SlugField(unique=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Only generate slug for new objects (no id yet)
+        is_new = self.id is None
+        super().save(*args, **kwargs)
+        if is_new and not self.slug:
+            self.slug = f"usage-{self.id}"
+            # Use update_fields to avoid full save and potential conflicts
+            self.save(update_fields=['slug'])
 
     def total_quantity(self):
         return sum(detail.quantity for detail in self.details.all())
