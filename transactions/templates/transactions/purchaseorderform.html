@@ -3,6 +3,12 @@
 
 {% block stylesheets %}
 <style>
+    :root {
+        --brand-color: #b038a0;
+        --brand-hover: #9a3089;
+        --brand-light: rgba(176, 56, 160, 0.1);
+        --brand-border: rgba(176, 56, 160, 0.3);
+    }
     /* Custom brand color styles */
     .text-brand {
         color: #b038a0 !important;
@@ -28,9 +34,36 @@
         margin-bottom: 0.5rem;
     }
     
+    .form-control {
+        border: 1px solid #ced4da; /* Ensure default border visibility */
+    }
+    
     .form-control:focus {
         border-color: #b038a0;
         box-shadow: 0 0 0 0.25rem rgba(176, 56, 160, 0.25);
+    }
+    .btn-brand {
+        background-color: var(--brand-color) !important;
+        border-color: var(--brand-color) !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: var(--brand-hover) !important;
+        border-color: var(--brand-hover) !important;
+    }
+    
+    .btn-outline-brand {
+        color: var(--brand-color) !important;
+        border-color: var(--brand-color) !important;
+        background-color: transparent !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: var(--brand-light) !important;
+    }
+    .text-brand {
+        color: var(--brand-color) !important;
     }
 </style>
 {% endblock %}
@@ -43,7 +76,9 @@
                 <h4 class="display-6 mb-0 text-brand">Edit Purchase Order #{{ object.id }}</h4>
             </div>
             <div class="col-md-6 d-flex justify-content-end gap-2">
-                <a class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm" href="{% url 'purchaseorderslist' %}">Cancel</a>
+                <a class="btn btn-outline-brand btn-sm rounded-pill shadow-sm" href="{% url 'purchaseorderslist' %}">
+                    <i class="fas fa-arrow-left me-2"></i> Back to List
+                </a>
             </div>
         </div>
         <div class="mt-4">
@@ -62,34 +97,42 @@
                 </div>
                 {% endfor %}
                 
+                <h5 class="text-brand mt-4">Items</h5>
+                {{ formset.management_form }}
+                {% for form in formset %}
+                <div class="form-row mb-3">
+                    {{ form.id }}
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            {{ form.item.label_tag }}
+                            {{ form.item }}
+                        </div>
+                        <div class="col-md-3 form-group">
+                            {{ form.quantity.label_tag }}
+                            {{ form.quantity }}
+                        </div>
+                        <div class="col-md-3 form-group">
+                            {{ form.total_value.label_tag }}
+                            {{ form.total_value }}
+                        </div>
+                        <div class="col-md-2 form-group">
+                            <div class="form-check">
+                                {{ form.DELETE }} {{ form.DELETE.label_tag }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if form.errors %}
+                    <div class="text-danger">
+                        {{ form.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
                 <div class="col-12 mt-3">
                     <button type="submit" class="btn btn-brand btn-sm rounded-pill shadow-sm">Save Changes</button>
                 </div>
             </form>
-            
-            {% if existing_items %}
-            <div class="mt-4">
-                <h5 class="text-brand">Existing Items</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Quantity</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in existing_items %}
-                            <tr>
-                                <td>{{ item.item__name }}</td>
-                                <td>{{ item.quantity }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>

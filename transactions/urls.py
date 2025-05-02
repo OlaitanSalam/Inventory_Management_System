@@ -29,6 +29,7 @@ urlpatterns = [
     path('new-purchase-order/', PurchaseOrderCreateView, name='purchaseorder-create'),
     path('purchase-order/<int:pk>/update/', PurchaseOrderUpdateView.as_view(), name='purchaseorder-update'),
     path('purchase-order/<int:pk>/delete/', PurchaseOrderDeleteView.as_view(), name='purchaseorder-delete'),
+    #ajax calls for urls
 
     # Sale URLs
     path('sales/', SaleListView.as_view(), name='saleslist'),

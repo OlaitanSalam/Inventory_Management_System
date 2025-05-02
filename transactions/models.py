@@ -112,6 +112,9 @@ class PurchaseOrder(models.Model):
     delivery_status = models.CharField(choices=DELIVERY_CHOICES, max_length=1, default="P", verbose_name="Delivery Status")
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='purchase_orders', null=True, blank=True)
     total_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    created_by = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, blank=True)
+
+    
 
     def __str__(self):
         return f"Purchase Order {self.id} - {self.vendor.name}"
