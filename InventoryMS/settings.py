@@ -14,9 +14,9 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['Inovacaong.pythonanywhere.com']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -82,19 +82,10 @@ WSGI_APPLICATION = 'InventoryMS.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Inovacaong$default',    # Database name
-        'USER': 'Inovacaong',             # Your PythonAnywhere username
-        'PASSWORD': 'poshMet71@',  # Use environment variable for security
-        'HOST': 'Inovacaong.mysql.pythonanywhere-services.com',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        }
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
-
+}
 
 
 # Password validation
