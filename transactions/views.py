@@ -14,6 +14,9 @@ from store.models import Item, StoreInventory, StockAlert, Store
 from .models import Sale, SaleDetail, PurchaseOrder, PurchaseDetail, TaxRate, Transfer, TransferDetail
 from accounts.models import Vendor
 from store.views import update_stock_and_check_alert
+from django.forms import inlineformset_factory
+from .forms import PurchaseOrderForm, PurchaseDetailForm
+
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +274,8 @@ def PurchaseOrderCreateView(request):
                     "vendor_id": data["vendor"],
                     "delivery_date": delivery_date,
                     "delivery_status": data["delivery_status"],
-                    "store": request.user.store
+                    "store": request.user.store,
+                    "created_by": request.user  # Set the creator
                 }
 
                 with transaction.atomic():
@@ -324,17 +328,68 @@ def PurchaseOrderCreateView(request):
 
 class PurchaseOrderUpdateView(LoginRequiredMixin, UpdateView):
     model = PurchaseOrder
-    fields = ['vendor', 'delivery_date', 'delivery_status']
+    form_class = PurchaseOrderForm
     template_name = "transactions/purchaseorderform.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['existing_items'] = list(self.object.details.values('item__id', 'item__name', 'quantity',  'description'))
+        PurchaseDetailFormSet = inlineformset_factory(
+            PurchaseOrder,
+            PurchaseDetail,
+            form=PurchaseDetailForm,
+            fields=('item', 'quantity', 'total_value'),
+            extra=1,
+            can_delete=True
+        )
+        if self.request.POST:
+            context['formset'] = PurchaseDetailFormSet(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = PurchaseDetailFormSet(instance=self.object)
         return context
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not (self.object.delivery_status == 'P' and self.object.created_by == request.user):
+            if self.object.delivery_status != 'P':
+                message = "You cannot edit this purchase order anymore because it was upon successful transactions."
+            else:
+                creator_email = self.object.created_by.email
+                message = f"You cannot edit this purchase order because it was initiated by another user. Please contact {creator_email} or the admin."
+            return render(request, 'transactions/permission_denied_purchase_order.html', {'message': message})
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if not (self.object.delivery_status == 'P' and self.object.created_by == request.user):
+            if self.object.delivery_status != 'P':
+                message = "You cannot edit this purchase order anymore because it was upon successful transactions."
+            else:
+                creator_email = self.object.created_by.email
+                message = f"You cannot edit this purchase order because it was initiated by another user. Please contact {creator_email} or the admin."
+            return render(request, 'transactions/permission_denied_purchase_order.html', {'message': message})
+        form = self.get_form()
+        PurchaseDetailFormSet = inlineformset_factory(
+            PurchaseOrder,
+            PurchaseDetail,
+            form=PurchaseDetailForm,
+            fields=('item', 'quantity', 'total_value'),
+            extra=1,
+            can_delete=True
+        )
+        formset = PurchaseDetailFormSet(request.POST, instance=self.object)
+        if form.is_valid() and formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            self.object.total_value = sum(detail.total_value for detail in self.object.details.all())
+            self.object.save()
+            return redirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form, formset=formset))
 
     def get_success_url(self):
         return reverse("purchaseorderslist")
-
+    
 class PurchaseOrderDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = PurchaseOrder
     template_name = "transactions/purchasedelete.html"
