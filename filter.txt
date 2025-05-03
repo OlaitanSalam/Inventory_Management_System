@@ -1,0 +1,5 @@
+echo "Inovacaong$default" >> filter.txt
+echo "Inovacaong" >> filter.txt
+echo "poshMet71@" >> filter.txt
+echo "Inovacaong.mysql.pythonanywhere-services.com" >> filter.txt
+echo "3306" >> filter.txt

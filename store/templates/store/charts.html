@@ -1,0 +1,144 @@
+<!-- store/templates/store/dashboard.html (chart section) -->
+<div class="row">
+    <div class="card shadow border-0 mb-7 col-md-6 col-lg-6">
+        <div class="card-body">
+            <h5 class="card-title">Category Distribution</h5>
+            <div class="chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="card shadow border-0 mb-7 col-md-6 col-lg-6">
+        <div class="card-body">
+            <h5 class="card-title">{{ chart_title }}</h5>
+            <div class="chart-container">
+                <canvas id="lineChart"></canvas>
+                <button id="resetZoomBtn" class="btn btn-secondary btn-sm reset-zoom-btn" onclick="lineChart.resetZoom()">Reset Zoom</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Required scripts for time scale and zooming -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+<script>
+    // Pie Chart (unchanged)
+    var ctxPie = document.getElementById('pieChart').getContext('2d');
+    var pieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: {{ categories|safe }},
+            datasets: [{
+                data: {{ category_counts|safe }},
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#E7E9ED', '#8E5EA2'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Category Distribution',
+                    font: { size: 16 }
+                }
+            },
+            cutout: '60%',
+            maintainAspectRatio: false
+        }
+    });
+
+    // Line Chart
+    var ctxLine = document.getElementById('lineChart').getContext('2d');
+    var lineChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+                label: '{{ chart_title }}',
+                data: {{ chart_values|safe }},
+                fill: false,
+                borderColor: '#4BC0C0',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) { return '{{ chart_title }}: ' + tooltipItem.raw; }
+                    }
+                },
+                title: { display: true, text: '{{ chart_title }}', font: { size: 16 } },
+                zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: { wheel: { enabled: true }, mode: 'x' }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day' },
+                    min: '{{ initial_min_date }}',
+                    max: '{{ initial_max_date }}',
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 10,
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: { beginAtZero: true }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    // Show/hide Reset Zoom button on hover/touch
+    const chartContainer = document.querySelector('.chart-container');
+    const resetZoomBtn = document.getElementById('resetZoomBtn');
+    chartContainer.addEventListener('mouseenter', () => resetZoomBtn.style.display = 'block');
+    chartContainer.addEventListener('mouseleave', () => resetZoomBtn.style.display = 'none');
+    chartContainer.addEventListener('touchstart', () => resetZoomBtn.style.display = 'block');
+    chartContainer.addEventListener('touchend', () => setTimeout(() => resetZoomBtn.style.display = 'none', 2000));
+</script>
+
+<style>
+    .chart-container {
+        position: relative;
+        width: 100%;
+        height: 400px;
+    }
+    #pieChart, #lineChart {
+        max-width: 100%;
+        height: 100%;
+    }
+    .reset-zoom-btn {
+        display: none;
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+    }
+</style>

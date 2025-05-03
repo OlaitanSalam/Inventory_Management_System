@@ -1,0 +1,67 @@
+<!-- templates/store/add_existing_item.html -->
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="col-md-10">
+            <h4 class="display-6 mb-0 text-brand">Add Existing Items to {{ request.user.store.name }} Inventory</h4>
+        </div>
+    </div>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Minimum Stock Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                <tr>
+                    <td>{{ form.item }}</td>
+                    <td>{{ form.quantity }}</td>
+                    <td>{{ form.min_stock_level }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-brand">Add Items</button>
+        <a href="{% url 'productslist' %}" class="btn btn-warning">Cancel</a>
+    </form>
+</div>
+{% endblock %}

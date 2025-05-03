@@ -1,0 +1,232 @@
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Transaction Detail{% endblock %}
+{% block content %}
+<style>
+	section .receipt {
+		margin: 0;
+		font-size: 11px;
+		position: relative;
+		font-family: 'courier';
+	}
+	.serif {
+		font-family: serif;
+	}
+	.sans-serif {
+		font-family: 'sans-serif';
+	}
+	.bold {
+		font-weight: 700;
+	}
+	.x-bold {
+		font-weight: 900;
+		text-shadow: 0px 0px 1px #000;
+	}
+	.hr, .hr-sm, .hr-lg {
+		border-bottom: 1.5px dashed #333;
+		margin: 10px 0;
+	}
+	.hr-sm {
+		width: 30%;
+		float: right;
+	}
+	.hr-lg {
+		width: 100%;
+	}
+	.col2 {
+		display: flex;
+		width: 100%;
+		justify-content: space-between;
+	}
+	.container-ticket {
+		background: #e6e6e6;
+		width: 100%;
+		min-height: 100vh;
+		display: flex;
+		justify-content: center;
+		padding: 50px 0;
+		box-sizing: border-box;
+	}
+	.container-ticket .ticket {
+		cursor: default;
+		position: relative;
+		width: 300px;
+		padding: 10px 20px;
+		background: #fff url(https://static.licdn.com/scds/common/u/images/apps/payments/textures/texture_paper_304x128_v1.png);
+		box-shadow: 0px 5px 10px rgba(0, 0, 0, .1);
+	}
+	.container-ticket .ticket .head-ticket {
+		text-align: center;
+		padding: 0px 17px;
+	}
+	.container-ticket .ticket .head-ticket p {
+		font-size: 14px;
+	}
+	.container-ticket .ticket .head-ticket p:nth-child(1) {
+		font-size: 18px;
+	}
+	.container-ticket .ticket .head-ticket p:nth-child(6), .container-ticket .ticket .head-ticket p:nth-child(7) {
+		font-size: 12px;
+		text-align: left;
+	}
+	.container-ticket .ticket .head-ticket .code-barre {
+		height: 50px;
+		display: flex;
+		justify-content: space-between;
+		margin-left: -17px;
+		margin-right: -17px;
+		margin-top: 5px;
+	}
+	.container-ticket .ticket .head-ticket .code-barre span {
+		height: 100%;
+		width: 10px;
+		display: inline-block;
+		background: #333;
+	}
+	.container-ticket .ticket .body-ticket {
+		padding: 0px 17px;
+	}
+	.container-ticket .ticket .body-ticket .produits {
+		margin: 30px 0;
+	}
+	.container-ticket .ticket .body-ticket .carte {
+		text-align: justify;
+		text-align-last: center;
+	}
+	.container-ticket .ticket .body-ticket .carte .title-carte {
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: -2px;
+	}
+	.container-ticket .ticket .footer-ticket {
+		padding: 0px 17px;
+	}
+	.container-ticket .ticket .footer-ticket .title-footer {
+		font-size: 16px;
+		font-weight: 900;
+		text-shadow: 0px 1px 0px rgba(0, 0, 0, .5);
+		text-align: center;
+		letter-spacing: 2px;
+	}
+	.items-table {
+		width: 100%;
+		margin: 10px 0;
+	}
+	.items-table th, .items-table td {
+		text-align: left;
+		padding: 5px;
+	}
+	@media print {
+		body * {
+			visibility: hidden;
+		}
+		.receipt, .receipt * {
+			visibility: visible;
+		}
+		.receipt {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 80mm; /* Matches typical 80mm receipt printer width */
+		}
+		.print-button {
+			display: none !important;
+		}
+		body {
+			margin: 0;
+			padding: 0;
+		}
+	}
+</style>
+<div>
+<div class="text-center py-3">
+	<a href="javascript:printReceipt()" class="btn btn-outline-success btn-sm print-button">
+		<i class="fa fa-print"></i> Print
+	</a>
+</div>
+<section class="receipt container-ticket">
+	<div class="ticket">
+		<div class="head-ticket">
+			<p class="x-bold">{{ sale.store.name }}</p>
+			<p class="bold">{{ sale.store.address }}</p>
+			<p class="bold">Tel: {{ sale.store.contact_number }}</p>
+			<br>
+			<p>Customer: {{ sale.get_customer_display }}</p>
+			<p>Date: {{ sale.date_added|date:"Y/m/d H:i:s" }}</p>
+			<p>Cashier: {{ sale.cashier.first_name }}</p>
+			<p>Receipt No: {{ sale.receipt_number }}</p>
+			<div class="hr-lg"></div>
+			<div class="code-barre">
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+				<span></span><span></span><span></span><span></span><span></span>
+			</div>
+		</div>
+		<div class="body-ticket">
+			<div class="produits">
+				<h4>Items</h4>
+				<table class="items-table">
+					<thead>
+						<tr>
+							<th>Item</th>
+							<th>Price</th>
+							<th>Qty</th>
+							<th>Total</th>
+						</tr>
+					</thead>
+					
+					<tbody>
+						{% for detail in sale.saledetail_set.all %}
+						<tr>
+							<td>{{ detail.item.name }}</td>
+							<td>₦ {{ detail.price }}</td>
+							<td>{{ detail.quantity }}</td>
+							<td>₦ {{ detail.total_detail }}</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+				<div class="hr-sm"></div>
+				<div class="col2">
+					<p>Sub Total</p>
+					<p class="prix"><b>₦ {{ sale.sub_total }}</b></p>
+				</div>
+				<br>
+				<div class="col2">
+					<p>Tax Amount ({{ sale.tax_percentage }}%)</p>
+					<p class="prix"><b>₦ {{ sale.tax_amount }}</b></p>
+				</div>
+				<div class="col2">
+					<p>Grand Total</p>
+					<p class="prix"><b>₦ {{ sale.grand_total }}</b></p>
+				</div>
+				<div class="col2">
+					<p>Amount Paid</p>
+					<p class="prix"><b>₦ {{ sale.amount_paid }}</b></p>
+				</div>
+				<div class="col2">
+					<p>Balance</p>
+					<p class="prix"><b>₦ {{ sale.amount_change }}</b></p>
+				</div>
+			</div>
+			<div class="hr-lg"></div>
+		</div>
+		<div class="footer-ticket">
+			<p class="title-footer">THANK YOU</p>
+		</div>
+	</div>
+</section>
+</div>
+<script>
+function printReceipt() {
+    window.print();
+}
+</script>
+{% endblock content %}

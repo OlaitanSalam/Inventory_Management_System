@@ -1,0 +1,13 @@
+{% extends "store/base.html" %}
+{% block title %}Confirm Delete{% endblock %}
+{% block content %}
+<div class="container pt-5">
+    <h2 class="mb-4">Confirm Deletion</h2>
+    <form method="post">
+        {% csrf_token %}
+        <p>Are you sure you want to delete usage record #{{ object.id }}?</p>
+        <button class="btn btn-outline-danger btn-sm" type="submit">Yes, Delete</button>
+        <a class="btn btn-outline-success btn-sm" href="{% url 'usage_list' %}">Cancel</a>
+    </form>
+</div>
+{% endblock %}

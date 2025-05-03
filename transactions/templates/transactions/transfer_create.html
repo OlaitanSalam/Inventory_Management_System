@@ -1,0 +1,346 @@
+<!-- transactions/transfer_create.html -->
+{% extends "store/base.html" %}
+{% load static %}
+{% block title %}Create Transfer{% endblock title %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .bg-brand {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .select2-container--bootstrap4 .select2-results__option--highlighted, 
+    .select2-container--bootstrap4 .select2-results__option--highlighted.select2-results__option[aria-selected=true] {
+        background-color: #b038a0 !important;
+    }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="mb-4">
+        <a href="{% url 'transferslist' %}" class="btn btn-outline-brand">
+            <i class="fas fa-arrow-left me-2"></i> Go back
+        </a>
+    </div>
+
+    <form id="form_transfer" action="{% url 'transfer-create' %}" class="transferForm" method="post">
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-brand">
+                        <h5 class="mb-0">Transfer Items</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="searchbox_items" class="form-label">Search Item:</label>
+                            <select class="form-select select2" name="searchbox_items" id="searchbox_items" aria-label="Search items"></select>
+                        </div>
+
+                        <button type="button" class="btn btn-danger btn-sm mb-4 deleteAll">
+                            <i class="fas fa-trash-alt me-2"></i> Delete All Items
+                        </button>
+
+                        <div class="table-responsive my-3">
+                            <table class="table table-bordered table-striped" id="table_items">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th style="width: 150px;">Quantity</th>
+                                        <th>Total</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card border-light shadow-sm">
+                    <div class="card-header bg-brand">
+                        <h5 class="mb-0">Transfer Details</h5>
+                    </div>
+                    <div class="card-body">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="destination_store" class="form-label">Destination Store</label>
+                            <select name="destination_store" id="destination_store" class="form-control" required>
+                                {% for store in branch_stores %}
+                                <option value="{{ store.id }}">{{ store.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sub_total" class="form-label">Subtotal</label>
+                            <input name="sub_total" type="number" class="form-control" id="sub_total" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="grand_total" class="form-label">Grand Total</label>
+                            <input name="grand_total" type="number" class="form-control" id="grand_total" required readonly>
+                        </div>
+                        <button type="submit" class="btn btn-brand w-100">Create Transfer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" defer></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.15/dist/sweetalert2.all.min.js" defer></script>
+
+<script>
+function roundTo(n, digits) {
+    if (digits === undefined) {
+        digits = 0;
+    }
+    var multiplicator = Math.pow(10, digits);
+    n = parseFloat((n * multiplicator).toFixed(11));
+    return Math.round(n) / multiplicator;
+}
+
+var number = 1;
+var transfer = {
+    products: {
+        sub_total: 0.00,
+        grand_total: 0.00,
+        items: []
+    },
+    calculate_transfer: function () {
+        var sub_total = 0.00;
+        
+        $.each(this.products.items, function (pos, dict) {
+            dict.pos = pos;
+            if (!dict.manual_total) {
+                dict.total_item = roundTo(dict.quantity * dict.price, 2);
+            }
+            sub_total += parseFloat(dict.total_item) || 0;
+        });
+
+        this.products.sub_total = roundTo(sub_total, 2);
+        this.products.grand_total = this.products.sub_total; // No tax
+
+        $('input[name="sub_total"]').val(this.products.sub_total);
+        $('input[name="grand_total"]').val(this.products.grand_total);
+    },
+    add_item: function (item) {
+        item.total_item = roundTo(item.quantity * item.price, 2);
+        item.manual_total = false;
+        this.products.items.push(item);
+        var rowNode = tblItems.row.add(item).draw(false).node();
+        this.calculate_transfer();
+    }
+};
+
+var tblItems;
+
+$(document).ready(function () {
+    tblItems = $("#table_items").DataTable({
+        columns: [
+            {"data": "number"},
+            {"data": "text"},
+            {"data": "price", "render": function(data) {
+                return parseFloat(data).toFixed(2) + ' ₦';
+            }},
+            {"data": "quantity", "render": function(data, type, row) {
+                return '<input name="quantity" type="number" class="form-control text-center" style="width: 100%;" value="' + row.quantity + '">';
+            }},
+            {"data": "total_item", "render": function(data, type, row) {
+                return '<input name="total_item" type="number" step="0.01" class="form-control text-right" value="' + (row.total_item || 0) + '">';
+            }},
+            {"data": "id", "render": function() {
+                return '<a rel="delete" type="button" class="btn btn-sm btn-danger"> <i class="fas fa-trash-alt"></i> </a>';
+            }}
+        ]
+    });
+
+    $('#searchbox_items').select2({
+        delay: 250,
+        placeholder: 'Search an item',
+        minimumInputLength: 1,
+        allowClear: true,
+        templateResult: function(repo) {
+            if (!repo.text) return repo.text;
+            return $(`<div class="card mb-3"><div class="card-body"><small class="card-title">${repo.text}</small></div></div>`);
+        },
+        ajax: {
+            url: "{% url 'get_items' %}",
+            type: 'POST',
+            data: function (params) {
+                return {
+                    term: params.term,
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data
+                };
+            }
+        }
+    }).on('select2:select', function (e) {
+        var data = e.params.data;
+        data.number = number++;
+        data.quantity = 1;
+        transfer.add_item(data);
+        $(this).val('').trigger('change.select2');
+    });
+
+    $('#table_items tbody').on('click', 'a[rel="delete"]', function () {
+        var tr = $(this).closest('tr');
+        var row = tblItems.row(tr);
+        var index = row.index();
+        transfer.products.items.splice(index, 1);
+        row.remove().draw(false);
+        transfer.calculate_transfer();
+        Swal.fire('Item removed!', '', 'success');
+    });
+
+    $('#table_items tbody').on('keyup', 'input[name="quantity"]', function () {
+        var $input = $(this);
+        var quantity = $input.val();
+        if (quantity === '' || isNaN(parseInt(quantity))) {
+            return;
+        }
+        quantity = parseInt(quantity);
+        var tr = $input.closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        var item = transfer.products.items[rowIndex];
+        item.quantity = quantity;
+        if (!item.manual_total) {
+            item.total_item = roundTo(quantity * item.price, 2);
+            $(tr).find('input[name="total_item"]').val(item.total_item);
+        }
+        transfer.calculate_transfer();
+    });
+
+    $('#table_items tbody').on('blur', 'input[name="quantity"]', function () {
+        var $input = $(this);
+        var quantity = parseInt($input.val());
+        if (isNaN(quantity) || quantity < 1) {
+            quantity = 1;
+            $input.val(1);
+        }
+        var tr = $input.closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        var item = transfer.products.items[rowIndex];
+        item.quantity = quantity;
+        if (!item.manual_total) {
+            item.total_item = roundTo(quantity * item.price, 2);
+            $(tr).find('input[name="total_item"]').val(item.total_item);
+        }
+        transfer.calculate_transfer();
+    });
+
+    $('#table_items tbody').on('change keyup', 'input[name="total_item"]', function () {
+        var total_item = parseFloat($(this).val()) || 0;
+        var tr = $(this).closest('tr');
+        var rowIndex = tblItems.row(tr).index();
+        transfer.products.items[rowIndex].total_item = total_item;
+        transfer.products.items[rowIndex].manual_total = true;
+        transfer.calculate_transfer();
+    });
+
+    $('.deleteAll').on('click', function () {
+        if (transfer.products.items.length === 0) return;
+        Swal.fire({
+            title: "Delete all items?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                transfer.products.items = [];
+                tblItems.clear().draw();
+                transfer.calculate_transfer();
+            }
+        });
+    });
+
+    $('form#form_transfer').on('submit', function (event) {
+        event.preventDefault();
+        var grandTotal = parseFloat($('input[name="grand_total"]').val());
+
+        var formData = {
+            sub_total: $('input[name="sub_total"]').val(),
+            grand_total: $('input[name="grand_total"]').val(),
+            destination_store: $('#destination_store').val(),
+            items: transfer.products.items.map(item => ({
+                id: item.id,
+                price: item.price,
+                quantity: item.quantity,
+                total_item: item.total_item
+            }))
+        };
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            data: JSON.stringify(formData),
+            success: function (response) {
+                transfer.products.items = [];
+                tblItems.clear().draw();
+                $('form#form_transfer').trigger('reset');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: response.message
+                }).then(() => {
+                    window.location.href = response.redirect;
+                });
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: xhr.responseJSON.message || 'An error occurred while processing the transfer!'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock javascripts %}

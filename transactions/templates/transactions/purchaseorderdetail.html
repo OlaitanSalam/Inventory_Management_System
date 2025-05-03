@@ -1,0 +1,75 @@
+{% extends "store/base.html" %}
+{% block title %}Purchase Order Detail{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .btn-outline-brand {
+        color: #b038a0 !important;
+        border-color: #b038a0 !important;
+    }
+    
+    .btn-outline-brand:hover {
+        background-color: #b038a0 !important;
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="display-6 mb-0 text-brand">Purchase Order #{{ purchase_order.id }}</h4>
+            </div>
+            <div class="col-md-6 d-flex justify-content-end gap-2">
+                <a class="btn btn-outline-brand btn-sm rounded-pill shadow-sm" href="{% url 'purchaseorderslist' %}">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Purchases
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="container px-3 mt-4">
+        <p><strong>Vendor:</strong> {{ purchase_order.vendor.name }}</p>
+        <p><strong>Order Date:</strong> {{ purchase_order.order_date }}</p>
+        <p><strong>Delivery Date:</strong> {{ purchase_order.delivery_date }}</p>
+        <p><strong>Delivery Status:</strong> {{ purchase_order.get_delivery_status_display }}</p>
+        <p><strong>Total Value:</strong> ₦{{ purchase_order.total_value }}</p>
+        <h3 class="text-brand">Items Purchased</h3>
+        <table class="table table-bordered table-striped table-hover table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detail in purchase_order.details.all %}
+                <tr>
+                    <td>{{ detail.item.name }}</td>
+                    <td>{{ detail.quantity }}</td>
+                    <td>₦{{ detail.total_value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

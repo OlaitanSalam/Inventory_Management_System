@@ -1,0 +1,68 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .form-control:focus {
+        border-color: #b038a0;
+        box-shadow: 0 0 0 0.25rem rgba(176, 56, 160, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-12">
+                <h4 class="display-6 mb-0 text-brand">{{ form.instance.pk|yesno:"Edit Vendor,Add Vendor" }}</h4>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container px-3 mt-4">
+        <div class="card shadow-sm p-4">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="text-danger mt-1">
+                        {{ field.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-brand">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <a href="{% url 'vendor-list' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "store/base.html" %}
+{% block title %}Usage Report{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* Custom brand color styles */
+    .text-brand {
+        color: #b038a0 !important;
+    }
+    
+    .btn-brand {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .btn-brand:hover {
+        background-color: #9a3089 !important;
+        border-color: #9a3089 !important;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #b038a0 !important;
+        border-color: #b038a0 !important;
+        color: white !important;
+    }
+    
+    .page-link {
+        color: #b038a0 !important;
+    }
+    
+    .page-link:hover {
+        color: #9a3089 !important;
+    }
+    
+    .table th, .table td {
+        text-align: center;
+    }
+    
+    .total-value {
+        color: #b038a0;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<div class="container my-4">
+    <div class="card shadow-sm rounded p-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="display-6 mb-0 text-brand">Usage Report</h4>
+            </div>
+            <!-- No action buttons needed for this report -->
+        </div>
+    </div>
+</div>
+<div class="container px-3">
+    <form method="get" class="mb-4">
+        <div class="row">
+            {% if request.user.is_superuser %}
+            <div class="col-md-3">
+                <label>Store</label>
+                <select name="store" class="form-control">
+                    {% for store in stores %}
+                    <option value="{{ store.id }}" {% if selected_store == store.id|stringformat:"s" %}selected{% endif %}>{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-3">
+                <label>Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label>End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button type="submit" class="btn btn-brand">Filter</button>
+            </div>
+        </div>
+    </form>
+    <table class="table table-bordered table-striped table-hover table-sm">
+        <thead class="thead-light">
+            <tr>
+                <th>Date</th>
+                <th>Total Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usage in usages %}
+            <tr>
+                <td>{{ usage.date }}</td>
+                <td>₦{{ usage.total_value }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2">No data available</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p class="total-value">Total Value: ₦{{ total_value }}</p>
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">«</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Previous">
+                        <span aria-hidden="true">«</span>
+                    </span>
+                </li>
+                {% endif %}
+                {% for i in paginator.page_range %}
+                {% if page_obj.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ i }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">»</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-label="Next">
+                        <span aria-hidden="true">»</span>
+                    </span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

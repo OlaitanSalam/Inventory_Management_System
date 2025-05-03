@@ -1,0 +1,36 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="error-container p-5 rounded shadow-lg">
+                <img src="{% static 'images/logo/403.jpg' %}" alt="Forbidden" class="img-fluid mb-4" style="max-width: 200px;">
+                <h1 class="display-4 text-danger mb-3">Access Denied</h1>
+                <p class="lead text-muted mb-4">
+                    {{ message }}
+                </p>
+                <div class="error-actions mt-5">
+                    <a href="{% url 'purchaseorderslist' %}" class="btn btn-success btn-sm rounded-pill shadow-sm">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Purchase Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .error-container {
+        background: #fff;
+        border: 1px solid #ff4444;
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
