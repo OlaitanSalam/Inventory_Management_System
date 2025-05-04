@@ -236,13 +236,18 @@ class PurchaseOrderListView(LoginRequiredMixin, ListView):
         else:
             return PurchaseOrder.objects.filter(store=self.request.user.store)
 
+
+    
 class PurchaseOrderDetailView(LoginRequiredMixin, DetailView):
     model = PurchaseOrder
     template_name = "transactions/purchaseorderdetail.html"
     context_object_name = "purchase_order"
 
     def get_queryset(self):
-        return PurchaseOrder.objects.filter(store=self.request.user.store)
+        if self.request.user.is_superuser:
+            return PurchaseOrder.objects.all()
+        else:
+            return PurchaseOrder.objects.filter(store=self.request.user.store)
 
 def PurchaseOrderCreateView(request):
     if request.user.store.central:
