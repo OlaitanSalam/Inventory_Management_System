@@ -17,6 +17,10 @@ from django.forms import model_to_dict
 from django_extensions.db.fields import AutoSlugField
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models import functions
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+
+
 
 
 
@@ -31,6 +35,33 @@ class Store(models.Model):
     address = models.TextField(blank=True)
     contact_number = models.CharField(max_length=15, blank=True)
     central = models.BooleanField(default=False)  # Indicates the central store (admin's primary)
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        # Check if this store is being marked as central
+        if self.central:
+            # Check if another central store already exists
+            existing_central = Store.objects.filter(central=True).exclude(pk=self.pk).first()
+            if existing_central:
+                raise ValidationError(
+                    f"Cannot create another central store. Store '{existing_central.name}' is already marked as central."
+                )
+
+    def save(self, *args, **kwargs):
+        # Run full validation before saving
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['central'],
+                condition=Q(central=True),
+                name='single_central_store'
+            )
+        ]
 
     def __str__(self):
         return self.name
@@ -63,13 +94,14 @@ class Item(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(max_length=256)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    price = models.FloatField(default=0)
+    price = models.FloatField(default=0, blank=True, null=True)
     purchase_price = models.FloatField(
         default=0,
         verbose_name="Purchase Price",
         help_text="Cost per one unit (e.g., per item)"
     )
     expiring_date = models.DateTimeField(null=True, blank=True)
+    has_varieties = models.BooleanField(default=False)  # Indicates if item has varieties
  
     
 
@@ -109,46 +141,15 @@ class Item(models.Model):
             )
         ]
     
-
-
-"""class Delivery(models.Model):
-   
-    # Represents a delivery of an item to a customer.
-    
-    item = models.ForeignKey(
-        Item, blank=True, null=True, on_delete=models.SET_NULL
-    )
-    customer_name = models.CharField(max_length=30, blank=True, null=True)
-    phone_number = PhoneNumberField(blank=True, null=True)
-    location = models.CharField(max_length=20, blank=True, null=True)
-    date = models.DateTimeField()
-    is_delivered = models.BooleanField(
-        default=False, verbose_name='Is Delivered'
-    )
-    store = models.ForeignKey(
-        Store, 
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='deliveries'
-    )
-    
-    def save(self, *args, **kwargs):
-        # Auto-set store from item if not set
-        if not self.store and self.item:
-            inventory = self.item.store_inventories.first()
-            if inventory:
-                self.store = inventory.store
-        super().save(*args, **kwargs)
+class Variety(models.Model):
+    base_item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='varieties')
+    name = models.CharField(max_length=50)
+    price = models.FloatField(default=0)
 
     def __str__(self):
-        
-        #String representation of the delivery.
-        
-        return (
-            f"Delivery of {self.item} to {self.customer_name} "
-            f"at {self.location} on {self.date}"
-        )"""
+        return f"{self.base_item.name} - {self.name}"
+
+
 
 
 # store/models.py

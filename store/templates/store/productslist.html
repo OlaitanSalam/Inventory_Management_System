@@ -68,7 +68,8 @@
                     <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'product-create' %}">
                         <i class="fa-solid fa-plus"></i> Add New Item
                     </a>
-                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% querystring '_export'='xlsx' %}">
+                    
+                    <a class="btn btn-brand btn-sm rounded-pill shadow-sm" href="{% url 'export-products' %}">
                         <i class="fa-solid fa-download"></i> Export to Excel
                     </a>
                 </div>

@@ -1,9 +1,10 @@
 from django.db import models
 from django_extensions.db.fields import AutoSlugField
-from store.models import Item, Store, StoreInventory
+from store.models import Item, Store, StoreInventory, Variety
 from accounts.models import Vendor, Profile
 from django.db import transaction
 import uuid
+
 
 DELIVERY_CHOICES = [("P", "Pending"), ("S", "Successful")]
 
@@ -55,6 +56,7 @@ class SaleDetail(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     total_detail = models.DecimalField(max_digits=10, decimal_places=2)
+    variety = models.ForeignKey(Variety, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = "sale_details"

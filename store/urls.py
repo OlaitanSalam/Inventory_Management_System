@@ -143,6 +143,7 @@ path('notifications/', NotificationListView.as_view(), name='notifications'),
     path('reports/branch-comparison/', views.BranchSalesComparisonView.as_view(), name='branch_sales_comparison'),
     path('bulk-upload/', BulkItemUploadView.as_view(), name='bulk_item_upload'),
     path('add-existing-items/', views.AddExistingItemToInventoryView.as_view(), name='add_existing_items'),
+    path('export-products/', views.export_products_to_excel, name='export-products'),
 ]
 
 # Static media files configuration for development

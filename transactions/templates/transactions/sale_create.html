@@ -130,7 +130,7 @@
                             <label for="amount_paid" class="form-label">Amount Paid</label>
                             <input name="amount_paid" type="number" class="form-control" id="amount_paid" required>
                         </div>
-                        <button type="submit" class="btn btn-brand w-100">Create Sale</button>
+                        <button type="submit" class="btn btn-brand w-100" id="submit-btn">Create Sale</button>
                     </div>
                 </div>
             </div>
@@ -188,15 +188,13 @@ var sale = {
         $('input[name="grand_total"]').val(this.products.grand_total);
     },
     add_item: function (item) {
+        if (item.type === 'variety') {
+            item.is_variety = true;  // Mark as variety
+        }
         item.total_item = roundTo(item.quantity * item.price, 2);
         item.manual_total = false;
         this.products.items.push(item);
-        var rowNode = tblItems.row.add(item).draw(false).node();
-        $(rowNode).find("input[name='quantity']").TouchSpin({
-            min: 1,
-            max: 10000,
-            step: 1
-        });
+        tblItems.row.add(item).draw(false);
         this.calculate_sale();
     }
 };
@@ -225,7 +223,7 @@ $(document).ready(function () {
 
     $('#searchbox_items').select2({
         delay: 250,
-        placeholder: 'Search an item',
+        placeholder: 'Search an item or variety',
         minimumInputLength: 1,
         allowClear: true,
         templateResult: function(repo) {
@@ -335,6 +333,8 @@ $(document).ready(function () {
 
     $('form#form_sale').on('submit', function (event) {
         event.preventDefault();
+        var $submitBtn = $('#submit-btn');
+        $submitBtn.prop('disabled', true);
         var amountPaid = parseFloat($('input[name="amount_paid"]').val());
         var grandTotal = parseFloat($('input[name="grand_total"]').val());
         var amountChange = roundTo(amountPaid - grandTotal, 2);
@@ -368,10 +368,11 @@ $(document).ready(function () {
                 'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
             },
             data: JSON.stringify(formData),
-            success: function (response) {
+        success: function (response) {
                 sale.products.items = [];
                 tblItems.clear().draw();
                 $('form#form_sale').trigger('reset');
+                $submitBtn.prop('disabled', false);
                 Swal.fire({
                     icon: 'success',
                     title: 'Success',
@@ -381,6 +382,7 @@ $(document).ready(function () {
                 });
             },
             error: function (xhr) {
+                $submitBtn.prop('disabled', false);
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',

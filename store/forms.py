@@ -1,5 +1,5 @@
 from django import forms
-from .models import Item, Category, StoreInventory
+from .models import Item, Category, StoreInventory, Variety
 
 class ItemForm(forms.ModelForm):
     """
@@ -25,6 +25,7 @@ class ItemForm(forms.ModelForm):
             'price',
             'purchase_price',
             'expiring_date',
+            'has_varieties',
         ]
         
         widgets = {
@@ -53,12 +54,29 @@ class ItemForm(forms.ModelForm):
                     'type': 'datetime-local'
                 }
             ),
+            'has_varieties': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     def clean_name(self):
         name = self.cleaned_data.get('name')
         if Item.objects.filter(name__iexact=name).exists() and not self.instance.pk:
             raise forms.ValidationError("An item with this name already exists, Add item to existing store inventory instead.")
-        return name    
+        return name 
+    def clean(self):
+        cleaned_data = super().clean()
+        has_varieties = cleaned_data.get('has_varieties')
+        price = cleaned_data.get('price')
+        if has_varieties and price is not None and price > 0:
+            raise forms.ValidationError("Items with varieties should not have a price.")
+        return cleaned_data
+
+class VarietyForm(forms.ModelForm):
+    class Meta:
+        model = Variety
+        fields = ['name', 'price']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }   
 
 class CategoryForm(forms.ModelForm):
     """
@@ -84,7 +102,7 @@ class AddExistingItemForm(forms.Form):
     """
     item = forms.ModelChoiceField(
         queryset=Item.objects.none(),  # Queryset will be set dynamically
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        widget=forms.Select(attrs={'class': 'form-control select2-item'}),
         label="Select Item"
     )
     quantity = forms.IntegerField(

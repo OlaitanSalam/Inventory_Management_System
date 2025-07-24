@@ -1,9 +1,11 @@
-<!-- templates/store/add_existing_item.html -->
 {% extends "store/base.html" %}
 {% load static %}
 
 {% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
 <style>
+    
     /* Custom brand color styles */
     .text-brand {
         color: #b038a0 !important;
@@ -29,6 +31,13 @@
         background-color: #b038a0 !important;
         color: white !important;
     }
+
+    .select2-container--bootstrap4 .select2-selection--single {
+        height: calc(1.5em + .75rem + 2px) !important;
+    }
+    .select2-container .select2-selection--single .select2-selection__rendered {
+        padding-top: 3px !important;
+    }
 </style>
 {% endblock %}
 
@@ -39,7 +48,7 @@
             <h4 class="display-6 mb-0 text-brand">Add Existing Items to {{ request.user.store.name }} Inventory</h4>
         </div>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="add-items-form">
         {% csrf_token %}
         {{ formset.management_form }}
         <table class="table">
@@ -48,20 +57,89 @@
                     <th>Item</th>
                     <th>Quantity</th>
                     <th>Minimum Stock Level</th>
+                    
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="formset-container">
                 {% for form in formset %}
-                <tr>
+                <tr class="form-row">
                     <td>{{ form.item }}</td>
                     <td>{{ form.quantity }}</td>
                     <td>{{ form.min_stock_level }}</td>
+                
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        
+        
+        
         <button type="submit" class="btn btn-brand">Add Items</button>
+
         <a href="{% url 'productslist' %}" class="btn btn-warning">Cancel</a>
     </form>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for existing item fields
+    $('.select2-item').select2({
+        theme: 'bootstrap4',
+        placeholder: "Search for an item...",
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Add new row
+    $('#add-row').click(function() {
+        const formCount = $('#id_form-TOTAL_FORMS').val();
+        const newForm = $('.form-row:first').clone(true);
+        
+        // Update IDs and names
+        newForm.find(':input').each(function() {
+            const name = $(this).attr('name').replace(/-\d+-/, '-' + formCount + '-');
+            const id = 'id_' + name;
+            $(this).attr({'name': name, 'id': id}).val('').removeAttr('selected');
+        });
+        
+        // Clear values
+        newForm.find('input[type="number"]').val('');
+        newForm.find('.select2-container').remove();
+        newForm.find('select').removeClass('select2-hidden-accessible')
+            .removeAttr('data-select2-id')
+            .show();
+        
+        // Add to table
+        newForm.appendTo('#formset-container');
+        
+        // Initialize Select2 for the new row
+        newForm.find('.select2-item').select2({
+            theme: 'bootstrap4',
+            placeholder: "Search for an item...",
+            allowClear: true,
+            width: '100%'
+        });
+        
+        // Update form count
+        $('#id_form-TOTAL_FORMS').val(parseInt(formCount) + 1);
+    });
+
+    // Remove row
+    $('.remove-row').click(function() {
+        const rowCount = $('.form-row').length;
+        if (rowCount > 1) {
+            $(this).closest('.form-row').remove();
+            $('#id_form-TOTAL_FORMS').val(rowCount - 1);
+        } else {
+            // Clear the only row instead of removing it
+            $(this).closest('.form-row').find('select').val('').trigger('change');
+            $(this).closest('.form-row').find('input[type="number"]').val('');
+        }
+    });
+});
+</script>
 {% endblock %}

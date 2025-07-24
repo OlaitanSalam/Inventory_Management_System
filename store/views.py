@@ -51,13 +51,17 @@ from bills.models import InternalUsage, UsageDetail
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, UpdateView
 from .models import Item, StoreInventory
-from .forms import ItemForm, CategoryForm, AddExistingItemForm
+from .forms import ItemForm, CategoryForm, AddExistingItemForm, VarietyForm
 import logging
 from datetime import timedelta
 from django.forms import formset_factory
 import pandas as pd
 from django.contrib import messages
 from django.views import View
+from django.http import HttpResponse
+from openpyxl import Workbook
+from store.models import StoreInventory, Item, Variety
+from django.forms import inlineformset_factory
 
 
 logger = logging.getLogger(__name__)
@@ -389,109 +393,6 @@ class CategoryDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return self.request.user.is_superuser
 
 
-'''class DeliveryListView(LoginRequiredMixin, ExportMixin, tables.SingleTableView):
-    model = Delivery
-    pagination = 10
-    template_name = "store/deliveries.html"
-    context_object_name = "deliveries"
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        current_store = self.request.user.store
-        return queryset.filter(store=current_store)
-
-class DeliverySearchListView(DeliveryListView):
-    """
-    View class to search and display a filtered list of deliveries.
-
-    Attributes:
-    - paginate_by: Number of items per page for pagination.
-    """
-
-    paginate_by = 10
-
-    def get_queryset(self):
-        result = super(DeliverySearchListView, self).get_queryset()
-
-        query = self.request.GET.get("q")
-        if query:
-            query_list = query.split()
-            result = result.filter(
-                reduce(
-                    operator.
-                    and_, (Q(customer_name__icontains=q) for q in query_list)
-                )
-            )
-        return result
-
-
-class DeliveryDetailView(LoginRequiredMixin, DetailView):
-    """
-    View class to display detailed information about a delivery.
-
-    Attributes:
-    - model: The model associated with the view.
-    - template_name: The HTML template used for rendering the view.
-    """
-
-    model = Delivery
-    template_name = "store/deliverydetail.html"
-
-
-class DeliveryCreateView(LoginRequiredMixin, CreateView):
-    """
-    View class to create a new delivery.
-
-    Attributes:
-    - model: The model associated with the view.
-    - fields: The fields to be included in the form.
-    - template_name: The HTML template used for rendering the view.
-    - success_url: The URL to redirect to upon successful form submission.
-    """
-
-    model = Delivery
-    form_class = DeliveryForm
-    template_name = "store/delivery_form.html"
-    success_url = "/deliveries"
-
-
-class DeliveryUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    View class to update delivery information.
-
-    Attributes:
-    - model: The model associated with the view.
-    - fields: The fields to be updated.
-    - template_name: The HTML template used for rendering the view.
-    - success_url: The URL to redirect to upon successful form submission.
-    """
-
-    model = Delivery
-    form_class = DeliveryForm
-    template_name = "store/delivery_form.html"
-    success_url = "/deliveries"
-
-
-class DeliveryDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """
-    View class to delete a delivery.
-
-    Attributes:
-    - model: The model associated with the view.
-    - template_name: The HTML template used for rendering the view.
-    - success_url: The URL to redirect to upon successful deletion.
-    """
-
-    model = Delivery
-    template_name = "store/productdelete.html"
-    success_url = "/deliveries"
-
-    def test_func(self):
-        if self.request.user.is_superuser:
-            return True
-        else:
-            return False'''
-
 
 class CategoryListView(LoginRequiredMixin, ListView):
     model = Category
@@ -518,19 +419,52 @@ def get_items_ajax_view(request):
     if is_ajax(request):
         try:
             term = request.POST.get("term", "")
+            for_transfer = request.POST.get("for_transfer", "false").lower() == "true"
             data = []
-            items = Item.objects.filter(name__icontains=term)
-            for item in items[:10]:
-                data.append({
-                    'id': item.id,
-                    'text': item.name,
-                    
-                    'price': float(item.price),  # Include price from Item model
-                })
+
+            if for_transfer:
+                # For transfers from central store: return all base items
+                if not request.user.store.central:
+                    return JsonResponse({'error': 'Only central store can initiate transfers'}, status=403)
+                items = Item.objects.filter(
+                    name__icontains=term,
+                    store_inventories__store=request.user.store
+                ).distinct()[:10]
+                for item in items:
+                    data.append({
+                        'id': str(item.id),
+                        'text': item.name,
+                        'price': float(item.price)
+                    })
+            else:
+                # For sales: return items without varieties and varieties
+                items = Item.objects.filter(
+                    name__icontains=term,
+                    has_varieties=False,
+                    store_inventories__store=request.user.store
+                ).distinct()[:10]
+                varieties = Variety.objects.filter(
+                    Q(name__icontains=term) | Q(base_item__name__icontains=term),
+                    base_item__store_inventories__store=request.user.store
+                ).select_related('base_item').distinct()[:10]
+                for item in items:
+                    data.append({
+                        'id': str(item.id),
+                        'text': item.name,
+                        'price': float(item.price)
+                    })
+                for variety in varieties:
+                    data.append({
+                        'id': f"v_{variety.id}",
+                        'text': f"{variety.base_item.name} - {variety.name}",
+                        'price': float(variety.price)
+                    })
+
             return JsonResponse(data, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Not an AJAX request'}, status=400)
+
 
 
 
@@ -835,30 +769,97 @@ class BulkItemUploadView(LoginRequiredMixin, UserPassesTestMixin, View):
     
 class AddExistingItemToInventoryView(LoginRequiredMixin, UserPassesTestMixin, View):
     template_name = 'store/add_existing_item.html'
-
+    success_url = reverse_lazy('productslist')
+    
+    def get_formset(self, data=None):
+        # Create formset with 1 form by default
+        extra = 1
+        if data:
+            # Get the number of forms from POST data
+            total_forms = int(data.get('form-TOTAL_FORMS', 1))
+            extra = max(total_forms, 1)  # Ensure at least 1 form
+        
+        # Create formset with dynamic number of forms
+        AddExistingItemFormSet = formset_factory(
+            AddExistingItemForm, 
+            extra=extra
+        )
+        return AddExistingItemFormSet(
+            data or None, 
+            form_kwargs={'store': self.request.user.store}
+        )
+    
     def get(self, request):
-        AddExistingItemFormSet = formset_factory(AddExistingItemForm, extra=1)  # Start with one form
-        formset = AddExistingItemFormSet(form_kwargs={'store': request.user.store})
+        formset = self.get_formset()
         return render(request, self.template_name, {'formset': formset})
-
+    
     def post(self, request):
-        AddExistingItemFormSet = formset_factory(AddExistingItemForm)
-        formset = AddExistingItemFormSet(request.POST, form_kwargs={'store': request.user.store})
+        formset = self.get_formset(request.POST)
         if formset.is_valid():
             for form in formset:
-                if form.has_changed():  # Only process forms with data
+                if form.has_changed() and form.cleaned_data:
                     item = form.cleaned_data['item']
                     quantity = form.cleaned_data['quantity']
                     min_stock_level = form.cleaned_data['min_stock_level']
                     store = request.user.store
+                    
+                    # Create inventory record
                     StoreInventory.objects.create(
                         store=store,
                         item=item,
                         quantity=quantity,
                         min_stock_level=min_stock_level
                     )
-            return redirect('productslist')
+            return redirect(self.success_url)
         return render(request, self.template_name, {'formset': formset})
-
+    
     def test_func(self):
         return self.request.user.is_superuser
+    
+
+def export_products_to_excel(request):
+    """
+    Export StoreInventory data to an Excel file, including quantity.
+    """
+    if not request.user.is_authenticated:
+        return HttpResponse("Unauthorized", status=401)
+
+    # Query StoreInventory for the user's store
+    store_inventory = StoreInventory.objects.filter(store=request.user.store).select_related('item')
+
+    # Create workbook and worksheet
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Products'
+
+    # Define column headers
+    columns = [
+        'Item ID',
+        'Item Name',
+        'Category',
+        'Store',
+        'Quantity',
+        'Minimum Stock Level',
+        'Unit Price',
+    ]
+    worksheet.append(columns)
+
+    # Append data rows
+    for inventory in store_inventory:
+        worksheet.append([
+            inventory.item.id,
+            inventory.item.name,
+            inventory.item.category.name if inventory.item.category else '',
+            inventory.store.name,
+            inventory.quantity,  # Include quantity
+            inventory.min_stock_level,
+            float(inventory.item.price) if inventory.item.price else 0.0,
+        ])
+
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=products.xlsx'
+    workbook.save(response)
+    return response

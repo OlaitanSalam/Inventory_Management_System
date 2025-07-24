@@ -10,7 +10,8 @@ This module defines the following admin classes:
 """
 
 from django.contrib import admin
-from .models import Category, Item, Store, StoreInventory, StockAlert
+from .models import Category, Item, Store, StoreInventory, StockAlert, Variety
+from django.core.exceptions import ValidationError
 
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -36,17 +37,7 @@ class ItemAdmin(admin.ModelAdmin):
     list_per_page = 10
 
 
-"""class DeliveryAdmin(admin.ModelAdmin):
-    
-    #Admin configuration for the Delivery model.
-    
-    list_display = (
-        'item', 'customer_name', 'phone_number',
-        'location', 'date', 'is_delivered'
-    )
-    search_fields = ('item__name', 'customer_name')
-    list_filter = ('is_delivered', 'date')
-    ordering = ('-date',)"""
+
 
 @admin.register(StoreInventory)
 class StoreInventoryAdmin(admin.ModelAdmin):
@@ -65,7 +56,48 @@ class StockAlertAdmin(admin.ModelAdmin):
     list_display = ('store_inventory', 'created_at', 'is_read')
     list_filter = ('is_read', 'store_inventory__store')
     list_per_page = 15
+
+
+
+@admin.register(Variety)
+class VarietyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'base_item', 'price')
+    list_filter = ('base_item',)
+    search_fields = ('name', 'base_item__name')
+    list_per_page = 10
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        queryset = Item.objects.filter(has_varieties=True)
+        if not queryset.exists():
+            self.message_user(request, "No items with varieties available. Please create an item with 'Has Varieties' enabled.", level='warning')
+        form.base_fields['base_item'].queryset = queryset
+        return form
+
+
+
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ('name', 'address', 'contact_number', 'central')
+    search_fields = ('name', 'address')
+    list_filter = ('central',)
+    list_per_page = 10
+    ordering = ('name',)
+    actions = None  # Disable bulk editing to prevent bypassing validation
+    
+    def save_model(self, request, obj, form, change):
+        try:
+            # This will call the model's clean() method
+            obj.full_clean()
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            # Display error message in admin
+            form.add_error('central', e)
+            return
+
+admin.site.register(Store, StoreAdmin)
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Item, ItemAdmin)
 #admin.site.register(Delivery, DeliveryAdmin)
-admin.site.register(Store)
+
+

@@ -181,11 +181,11 @@
 							<th>Total</th>
 						</tr>
 					</thead>
-					
 					<tbody>
 						{% for detail in sale.saledetail_set.all %}
 						<tr>
-							<td>{{ detail.item.name }}</td>
+							<!-- Modified to display variety name if present, otherwise item name -->
+							<td>{% if detail.variety %}{{ detail.variety.name }}{% else %}{{ detail.item.name }}{% endif %}</td>
 							<td>₦ {{ detail.price }}</td>
 							<td>{{ detail.quantity }}</td>
 							<td>₦ {{ detail.total_detail }}</td>
