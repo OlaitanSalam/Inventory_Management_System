@@ -39,33 +39,9 @@ class Store(models.Model):
     def __str__(self):
         return self.name
 
-    def clean(self):
-        # Check if this store is being marked as central
-        if self.central:
-            # Check if another central store already exists
-            existing_central = Store.objects.filter(central=True).exclude(pk=self.pk).first()
-            if existing_central:
-                raise ValidationError(
-                    f"Cannot create another central store. Store '{existing_central.name}' is already marked as central."
-                )
+    
 
-    def save(self, *args, **kwargs):
-        # Run full validation before saving
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['central'],
-                condition=Q(central=True),
-                name='single_central_store'
-            )
-        ]
-
-    def __str__(self):
-        return self.name
-
+   
 
 
 class Category(models.Model):

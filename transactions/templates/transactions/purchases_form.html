@@ -220,6 +220,7 @@
                 data: function (params) {
                     return {
                         term: params.term,
+                        base_items_only: true,  // Ensure only base items are returned
                         csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
                     };
                 },

@@ -32,7 +32,7 @@
                 <select name="store" class="form-control">
                     {% for store in stores %}
                     <option value="{{ store.id }}" 
-                        {% if request.GET.store == store.id|stringformat:"s" or not request.GET.store and store.central %}selected{% endif %}>
+                        {% if store.id == selected_store %}selected{% endif %}>
                         {{ store.name }}
                     </option>
                     {% endfor %}

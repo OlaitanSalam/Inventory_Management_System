@@ -419,13 +419,11 @@ def get_items_ajax_view(request):
     if is_ajax(request):
         try:
             term = request.POST.get("term", "")
-            for_transfer = request.POST.get("for_transfer", "false").lower() == "true"
+            base_items_only = request.POST.get("base_items_only", "false").lower() == "true"
             data = []
 
-            if for_transfer:
-                # For transfers from central store: return all base items
-                if not request.user.store.central:
-                    return JsonResponse({'error': 'Only central store can initiate transfers'}, status=403)
+            if base_items_only:
+                # Return all base items for the store
                 items = Item.objects.filter(
                     name__icontains=term,
                     store_inventories__store=request.user.store
@@ -467,7 +465,6 @@ def get_items_ajax_view(request):
 
 
 
-
 #this are my charts Views
 class SalesReportView(LoginRequiredMixin, ListView):
     model = Sale  # Base model, but we'll override get_queryset
@@ -477,21 +474,16 @@ class SalesReportView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         store_id = self.request.GET.get('store')
-        if self.request.user.is_superuser:
-            if store_id:
-                selected_store = Store.objects.get(id=store_id)
-            else:
-                selected_store = Store.objects.get(central=True)
+        if store_id:
+            selected_store = Store.objects.get(id=store_id)
         else:
             selected_store = self.request.user.store
 
-        # Fetch transfers for central store, sales for others
         if selected_store.central:
             qs = Transfer.objects.filter(store=selected_store)
         else:
             qs = Sale.objects.filter(store=selected_store)
 
-        # Apply date filters
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
         if start_date and end_date:
@@ -502,17 +494,12 @@ class SalesReportView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store_id = self.request.GET.get('store')
-        if self.request.user.is_superuser:
-            if store_id:
-                selected_store = Store.objects.get(id=store_id)
-            else:
-                selected_store = Store.objects.get(central=True)
+        if store_id:
+            selected_store = Store.objects.get(id=store_id)
         else:
             selected_store = self.request.user.store
 
-        # Indicate if data is transfers or sales
         context['is_transfer'] = selected_store.central
-        # Calculate total revenue (works for both models since both have grand_total)
         context['total_revenue'] = self.get_queryset().aggregate(total=Sum('grand_total'))['total'] or 0
 
         if self.request.user.is_superuser:
@@ -520,7 +507,6 @@ class SalesReportView(LoginRequiredMixin, ListView):
             context['selected_store'] = selected_store.id
 
         return context
-
 class UsageReportView(LoginRequiredMixin, ListView):
     model = InternalUsage
     template_name = 'store/usage_report.html'
@@ -530,14 +516,11 @@ class UsageReportView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = super().get_queryset()
         store_id = self.request.GET.get('store')
-        if self.request.user.is_superuser:
-            if store_id:
-                qs = qs.filter(store_id=store_id)
-            else:
-                central_store = Store.objects.get(central=True)
-                qs = qs.filter(store=central_store)
+        if store_id:
+            selected_store = Store.objects.get(id=store_id)
         else:
-            qs = qs.filter(store=self.request.user.store)
+            selected_store = self.request.user.store
+        qs = qs.filter(store=selected_store)
         
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
@@ -547,14 +530,15 @@ class UsageReportView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        store_id = self.request.GET.get('store')
         if self.request.user.is_superuser:
             context['stores'] = Store.objects.all()
-            store_id = self.request.GET.get('store')
             if store_id:
                 context['selected_store'] = store_id
             else:
-                central_store = Store.objects.get(central=True)
-                context['selected_store'] = central_store.id
+                context['selected_store'] = self.request.user.store.id
+        else:
+            context['selected_store'] = self.request.user.store.id
         context['total_value'] = sum(usage.total_value for usage in self.get_queryset())
         return context
 
@@ -582,15 +566,11 @@ class PerformanceStatsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         store_id = self.request.GET.get('store')
-        if self.request.user.is_superuser:
-            if store_id:
-                selected_store = Store.objects.get(id=store_id)
-            else:
-                selected_store = Store.objects.get(central=True)
+        if store_id:
+            selected_store = Store.objects.get(id=store_id)
         else:
             selected_store = self.request.user.store
 
-        # Fetch details based on store type
         if selected_store.central:
             details = TransferDetail.objects.filter(transfer__store=selected_store)
             date_field = 'transfer__date_added'
@@ -598,13 +578,11 @@ class PerformanceStatsView(LoginRequiredMixin, TemplateView):
             details = SaleDetail.objects.filter(sale__store=selected_store)
             date_field = 'sale__date_added'
 
-        # Apply date filters
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
         if start_date and end_date:
             details = details.filter(**{f'{date_field}__date__range': [start_date, end_date]})
 
-        # Aggregate best-selling or most-transferred items
         if selected_store.central:
             best_selling = details.values('item__name').annotate(
                 total_quantity=Sum('quantity'),
@@ -616,7 +594,6 @@ class PerformanceStatsView(LoginRequiredMixin, TemplateView):
                 last_date=Max('sale__date_added')
             ).order_by('-total_quantity')[:5]
 
-        # Calculate days since last transaction
         today = timezone.now().date()
         for item in best_selling:
             if item['last_date']:

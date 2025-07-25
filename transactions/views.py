@@ -269,8 +269,11 @@ def PurchaseOrderCreateView(request):
     if request.user.store.central:
         vendors = Vendor.objects.all()
     else:
-        central_store = Store.objects.get(central=True)
-        vendors = Vendor.objects.filter(name=central_store.name)  # Adjust if Vendor and Store are linked differently
+         central_stores = Store.objects.filter(central=True)
+         if central_stores.exists():
+             vendors = Vendor.objects.filter(name__in=[store.name for store in central_stores])
+         else:
+             vendors = Vendor.objects.none()
     context = {
         "active_icon": "purchases",
         "vendors": vendors
