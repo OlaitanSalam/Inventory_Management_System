@@ -15,6 +15,12 @@ class ItemForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={'class': 'form-control'}),
         required=False
     )
+    store_price = forms.FloatField(
+        min_value=0,
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        label="Store-Specific Price (overrides base price if set)"
+    )
 
     class Meta:
         model = Item

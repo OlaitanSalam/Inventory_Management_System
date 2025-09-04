@@ -81,6 +81,17 @@
                         <div class="text-danger">{{ form.min_stock_level.errors }}</div>
                     </div>
                 </div>
+
+<!-- ... in the form loop -->
+
+<div class="form-group">
+    <label for="{{ form.store_price.id_for_label }}">Store-Specific Price</label>
+    {{ form.store_price }}
+    {{ form.store_price.errors }}
+</div>
+
+<!-- ... -->
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="{{ form.price.id_for_label }}" class="form-label">Selling Price</label>

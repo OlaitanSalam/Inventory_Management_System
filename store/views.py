@@ -265,19 +265,26 @@ class ItemSearchListView(ProductListView):
         return result
 
 class ProductDetailView(LoginRequiredMixin, FormMixin, DetailView):
-    """
-    View class to display detailed information about a product.
-
-    Attributes:
-    - model: The model associated with the view.
-    - template_name: The HTML template used for rendering the view.
-    """
-
     model = Item
     template_name = "store/productdetail.html"
 
     def get_success_url(self):
         return reverse("product-detail", kwargs={"slug": self.object.slug})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        store = self.request.user.store
+        try:
+            inventory = StoreInventory.objects.get(store=store, item=self.object)
+            context['effective_price'] = inventory.effective_price
+
+            context['quantity'] = inventory.quantity
+            context['min_stock_level'] = inventory.min_stock_level
+        except StoreInventory.DoesNotExist:
+            context['effective_price'] = self.object.price
+            context['quantity'] = 0
+            context['min_stock_level'] = 0
+        return context
 
 
 
@@ -298,13 +305,17 @@ class ProductCreateView(LoginRequiredMixin, UserPassesTestMixin, View):
                     item = form.save()
                     quantity = form.cleaned_data.get('quantity', 0)
                     min_stock_level = form.cleaned_data.get('min_stock_level', 0)
+                    store_price = form.cleaned_data.get('store_price')
                     store = request.user.store
-                    StoreInventory.objects.create(
+                    inventory = StoreInventory.objects.create(
                         store=store,
                         item=item,
                         quantity=quantity,
                         min_stock_level=min_stock_level
                     )
+                    if store_price is not None:
+                        inventory.price = store_price if store_price > 0 else None
+                        inventory.save()
             return redirect('productslist')
         return render(request, 'store/productcreate.html', {'formset': formset})
 
@@ -324,6 +335,7 @@ class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         response = super().form_valid(form)
         quantity = form.cleaned_data.get('quantity')
         min_stock_level = form.cleaned_data.get('min_stock_level')
+        store_price = form.cleaned_data.get('store_price')
         store = self.request.user.store
         inventory, created = StoreInventory.objects.get_or_create(
             store=store,
@@ -333,6 +345,8 @@ class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             inventory.quantity = quantity
         if min_stock_level is not None:
             inventory.min_stock_level = min_stock_level
+        if store_price is not None:
+            inventory.price = store_price if store_price > 0 else None
         inventory.save()
         return response
 
@@ -343,6 +357,7 @@ class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             inventory = StoreInventory.objects.get(store=store, item=self.object)
             initial['quantity'] = inventory.quantity
             initial['min_stock_level'] = inventory.min_stock_level
+            initial['store_price'] = inventory.price
         except StoreInventory.DoesNotExist:
             pass
         return initial
@@ -419,23 +434,28 @@ def get_items_ajax_view(request):
     if is_ajax(request):
         try:
             term = request.POST.get("term", "")
-            base_items_only = request.POST.get("base_items_only", "false").lower() == "true"
+            for_transfer = request.POST.get("for_transfer", "false").lower() == "true"
             data = []
 
-            if base_items_only:
-                # Return all base items for the store
+            if for_transfer:
+                # For transfers from central store: return all base items with effective price
+                if not request.user.store.central:
+                    return JsonResponse({'error': 'Only central store can initiate transfers'}, status=403)
                 items = Item.objects.filter(
                     name__icontains=term,
                     store_inventories__store=request.user.store
                 ).distinct()[:10]
                 for item in items:
+                    inventory = StoreInventory.objects.filter(item=item, store=request.user.store).first()
+                    effective_price = inventory.effective_price if inventory else item.price or 0.0
+
                     data.append({
                         'id': str(item.id),
                         'text': item.name,
-                        'price': float(item.price)
+                        'price': float(effective_price)
                     })
             else:
-                # For sales: return items without varieties and varieties
+                # For sales: return items without varieties and varieties, with effective prices for base items
                 items = Item.objects.filter(
                     name__icontains=term,
                     has_varieties=False,
@@ -446,10 +466,13 @@ def get_items_ajax_view(request):
                     base_item__store_inventories__store=request.user.store
                 ).select_related('base_item').distinct()[:10]
                 for item in items:
+                    inventory = StoreInventory.objects.filter(item=item, store=request.user.store).first()
+                    effective_price = inventory.effective_price if inventory else item.price or 0.0
+
                     data.append({
                         'id': str(item.id),
                         'text': item.name,
-                        'price': float(item.price)
+                        'price': float(effective_price)
                     })
                 for variety in varieties:
                     data.append({
@@ -462,8 +485,6 @@ def get_items_ajax_view(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Not an AJAX request'}, status=400)
-
-
 
 #this are my charts Views
 class SalesReportView(LoginRequiredMixin, ListView):
@@ -823,6 +844,7 @@ def export_products_to_excel(request):
 
     # Append data rows
     for inventory in store_inventory:
+        effective_price = inventory.effective_price
         worksheet.append([
             inventory.item.id,
             inventory.item.name,
@@ -830,7 +852,7 @@ def export_products_to_excel(request):
             inventory.store.name,
             inventory.quantity,  # Include quantity
             inventory.min_stock_level,
-            float(inventory.item.price) if inventory.item.price else 0.0,
+            float(effective_price) if effective_price else 0.0,
         ])
 
     # Create response

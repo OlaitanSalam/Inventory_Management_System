@@ -148,6 +148,7 @@ class StoreInventory(models.Model):
     )
     quantity = models.IntegerField(default=0)
     min_stock_level = models.PositiveIntegerField(default=0)
+    price = models.FloatField(blank=True, null=True)  # Store-specific price; falls back to Item.price if null
 
     class Meta:
         unique_together = ('store', 'item')  # Ensures one record per item per store.
@@ -155,6 +156,11 @@ class StoreInventory(models.Model):
 
     def __str__(self):
         return f"{self.item.name} in {self.store.name}: {self.quantity}"
+    
+    @property
+    def effective_price(self):
+        """Return store-specific price if set, otherwise fallback to base item price."""
+        return self.price if self.price is not None else self.item.price
     
 class StockAlert(models.Model):
     store_inventory = models.ForeignKey(StoreInventory, on_delete=models.CASCADE, related_name='alerts')

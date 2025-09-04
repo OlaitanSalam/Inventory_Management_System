@@ -133,21 +133,33 @@ def SaleCreateView(request):
                             raise ValueError("Item is missing required fields")
 
                         item_id = item["id"]
+                        variety = None
+                        effective_price = None
                         # Check if the ID indicates a variety (starts with "v_")
                         if item_id.startswith("v_"):
                             variety_id = int(item_id[2:])  # Extract variety ID
                             variety = Variety.objects.get(id=variety_id)
                             base_item = variety.base_item  # Get the base item linked to the variety
+                            
+                            effective_price = variety.price
                         else:
                             base_item = Item.objects.get(id=int(item_id))  # Regular item
                             if base_item.has_varieties:  # Prevent direct sale of items with varieties
                                 raise ValueError(f"Cannot sell {base_item.name} directly; please select a variety.")
 
                         # Use base_item for inventory check and update
-                        inventory = StoreInventory.objects.filter(
+                            inventory = StoreInventory.objects.filter(
                             item=base_item,
                             store=new_sale.store
-                        ).first()
+                            ).first()
+                            effective_price = inventory.effective_price if inventory else base_item.price or 0.0
+
+                        
+                        # Validate price from frontend matches backend
+                        if float(item["price"]) != float(effective_price):
+                            raise ValueError(f"Price mismatch for item: {base_item.name}")
+
+                        inventory = StoreInventory.objects.filter(item=base_item, store=new_sale.store).first()
                         
                         if not inventory or inventory.quantity < int(item["quantity"]):
                             raise ValueError(f"Not enough stock for item: {base_item.name}")
@@ -159,7 +171,7 @@ def SaleCreateView(request):
                             "sale": new_sale,
                             "item": base_item,  # Always set to base item
                             "variety": variety if item_id.startswith("v_") else None,  # Set variety if it's a variety sale
-                            "price": float(item["price"]),  # Price from AJAX data (item or variety price)
+                            "price": float(effective_price),  # Price from AJAX data (item or variety price)
                             "quantity": int(item["quantity"]),
                             "total_detail": float(item["total_item"])
                         }
