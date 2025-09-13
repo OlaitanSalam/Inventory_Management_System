@@ -4,8 +4,8 @@
 {% block stylesheets %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-    
     /* Custom brand color styles */
     .text-brand {
         color: #b038a0 !important;
@@ -38,6 +38,9 @@
     .select2-container .select2-selection--single .select2-selection__rendered {
         padding-top: 3px !important;
     }
+    .form-row {
+        transition: all 0.3s ease;
+    }
 </style>
 {% endblock %}
 
@@ -46,37 +49,117 @@
     <div class="card shadow-sm rounded p-3">
         <div class="col-md-10">
             <h4 class="display-6 mb-0 text-brand">Add Existing Items to {{ request.user.store.name }} Inventory</h4>
+            <p class="text-muted">Add multiple items at once. Leave item field empty to skip a row.</p>
         </div>
     </div>
-    <form method="post" enctype="multipart/form-data" id="add-items-form">
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="add-items-form">
         {% csrf_token %}
         {{ formset.management_form }}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Minimum Stock Level</th>
-                    
-                </tr>
-            </thead>
-            <tbody id="formset-container">
-                {% for form in formset %}
-                <tr class="form-row">
-                    <td>{{ form.item }}</td>
-                    <td>{{ form.quantity }}</td>
-                    <td>{{ form.min_stock_level }}</td>
-                
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
         
-        
-        
-        <button type="submit" class="btn btn-brand">Add Items</button>
+        <div class="card mt-3">
+            <div class="card-body">
+                <table class="table" id="formset-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Minimum Stock Level</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="formset-container">
+    {% for form in formset %}
+    <tr class="form-row">
+    <td>
+        {{ form.item }}
+        {% if form.item.errors %}
+            <div class="text-danger small">{{ form.item.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}
+            <div class="text-danger small">{{ form.quantity.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        {{ form.min_stock_level }}
+        {% if form.min_stock_level.errors %}
+            <div class="text-danger small">{{ form.min_stock_level.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        <button type="button" class="btn btn-danger btn-sm remove-row">
+            <i class="fas fa-trash"></i> Remove
+        </button>
+    </td>
+</tr>
 
-        <a href="{% url 'productslist' %}" class="btn btn-warning">Cancel</a>
+    {% endfor %}
+    
+<tr id="empty-form-row" class="form-row d-none" aria-hidden="true">
+    <td>
+        {{ formset.empty_form.item }}
+        {% if formset.empty_form.item.errors %}
+            <div class="text-danger small">{{ formset.empty_form.item.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        {{ formset.empty_form.quantity }}
+        {% if formset.empty_form.quantity.errors %}
+            <div class="text-danger small">{{ formset.empty_form.quantity.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        {{ formset.empty_form.min_stock_level }}
+        {% if formset.empty_form.min_stock_level.errors %}
+            <div class="text-danger small">{{ formset.empty_form.min_stock_level.errors }}</div>
+        {% endif %}
+    </td>
+    <td>
+        <button type="button" class="btn btn-danger btn-sm remove-row">
+            <i class="fas fa-trash"></i> Remove
+        </button>
+    </td>
+</tr>
+
+
+    <!-- Hidden empty form for cloning -->
+    <tr id="empty-form" class="form-row d-none">
+        <td>{{ formset.empty_form.item }}</td>
+        <td>{{ formset.empty_form.quantity }}</td>
+        <td>{{ formset.empty_form.min_stock_level }}</td>
+        <td>
+            <button type="button" class="btn btn-danger btn-sm remove-row">
+                <i class="fas fa-trash"></i> Remove
+            </button>
+        </td>
+    </tr>
+</tbody>
+
+                </table>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <button type="button" id="add-row" class="btn btn-outline-brand">
+                <i class="fas fa-plus"></i> Add Another Row
+            </button>
+            <button type="submit" class="btn btn-brand">
+                <i class="fas fa-save"></i> Save All Items
+            </button>
+            <a href="{% url 'productslist' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
     </form>
 </div>
 {% endblock %}
@@ -86,60 +169,116 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
-    // Initialize Select2 for existing item fields
-    $('.select2-item').select2({
-        theme: 'bootstrap4',
-        placeholder: "Search for an item...",
-        allowClear: true,
-        width: '100%'
+    // Initialize Select2 for all item fields inside a context (document or a newly-added row)
+    function initSelect2($context) {
+        $context = $context || $(document);
+        $context.find('.select2-item').each(function() {
+            var $s = $(this);
+            // only init if not already initialized
+            if (!$s.data('select2')) {
+                $s.select2({
+                    theme: 'bootstrap4',
+                    placeholder: "Search for an item...",
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        });
+    }
+
+    // initial init for server-rendered rows
+    initSelect2($(document));
+
+    // Add new row using the hidden empty template
+    $('#add-row').on('click', function(e) {
+        e.preventDefault();
+        var formCount = parseInt($('#id_form-TOTAL_FORMS').val(), 10);
+        var $template = $('#empty-form-row').clone();
+
+        $template.removeAttr('id').removeClass('d-none').show();
+
+        // Replace __prefix__ and any existing numeric index in name/id/for attributes
+        $template.find(':input, label').each(function() {
+            var $el = $(this);
+            $.each(['name', 'id', 'for'], function(_, attr) {
+                var val = $el.attr(attr);
+                if (val) {
+                    val = val.replace(/__prefix__/g, formCount);
+                    val = val.replace(/form-\d+-/g, 'form-' + formCount + '-');         // if any existing numeric index
+                    val = val.replace(/id_form-\d+-/g, 'id_form-' + formCount + '-');  // for ids
+                    $el.attr(attr, val);
+                }
+            });
+
+            // clear any values
+            if ($el.is('select')) {
+                $el.val(null);
+            } else if ($el.is(':input')) {
+                $el.val('');
+            }
+        });
+
+        // append to table and update TOTAL_FORMS
+        $template.appendTo('#formset-container');
+        $('#id_form-TOTAL_FORMS').val(formCount + 1);
+
+        // initialize select2 on the newly added row only
+        initSelect2($template);
     });
 
-    // Add new row
-    $('#add-row').click(function() {
-        const formCount = $('#id_form-TOTAL_FORMS').val();
-        const newForm = $('.form-row:first').clone(true);
-        
-        // Update IDs and names
-        newForm.find(':input').each(function() {
-            const name = $(this).attr('name').replace(/-\d+-/, '-' + formCount + '-');
-            const id = 'id_' + name;
-            $(this).attr({'name': name, 'id': id}).val('').removeAttr('selected');
-        });
-        
-        // Clear values
-        newForm.find('input[type="number"]').val('');
-        newForm.find('.select2-container').remove();
-        newForm.find('select').removeClass('select2-hidden-accessible')
-            .removeAttr('data-select2-id')
-            .show();
-        
-        // Add to table
-        newForm.appendTo('#formset-container');
-        
-        // Initialize Select2 for the new row
-        newForm.find('.select2-item').select2({
-            theme: 'bootstrap4',
-            placeholder: "Search for an item...",
-            allowClear: true,
-            width: '100%'
-        });
-        
-        // Update form count
-        $('#id_form-TOTAL_FORMS').val(parseInt(formCount) + 1);
-    });
+    // Remove a row (supports delegated binding)
+    $(document).on('click', '.remove-row', function(e) {
+        e.preventDefault();
+        var $row = $(this).closest('.form-row');
+        var rowCount = $('.form-row').length;
 
-    // Remove row
-    $('.remove-row').click(function() {
-        const rowCount = $('.form-row').length;
         if (rowCount > 1) {
-            $(this).closest('.form-row').remove();
-            $('#id_form-TOTAL_FORMS').val(rowCount - 1);
+            $row.fadeOut(200, function() {
+                $(this).remove();
+                reindexForms();
+            });
         } else {
-            // Clear the only row instead of removing it
-            $(this).closest('.form-row').find('select').val('').trigger('change');
-            $(this).closest('.form-row').find('input[type="number"]').val('');
+            // If only one form left, clear it instead of removing
+            $row.find('select').val(null).trigger('change');
+            $row.find('input[type="number"]').val('');
         }
     });
+
+    // Re-index remaining forms after removal to maintain Django formset indexing
+    function reindexForms() {
+        var $forms = $('#formset-container .form-row');
+        $('#id_form-TOTAL_FORMS').val($forms.length);
+
+        $forms.each(function(index) {
+            var $form = $(this);
+
+            // destroy select2 on this row BEFORE changing attributes (prevents corruption)
+            $form.find('.select2-item').each(function() {
+                var $s = $(this);
+                if ($s.data('select2')) {
+                    $s.select2('destroy');
+                }
+            });
+
+            // update name/id/for attributes to the new index
+            $form.find(':input, label').each(function() {
+                var $el = $(this);
+                $.each(['name', 'id', 'for'], function(_, attr) {
+                    var val = $el.attr(attr);
+                    if (val) {
+                        val = val.replace(/__prefix__/g, index);
+                        val = val.replace(/form-\d+-/g, 'form-' + index + '-');
+                        val = val.replace(/id_form-\d+-/g, 'id_form-' + index + '-');
+                        $el.attr(attr, val);
+                    }
+                });
+            });
+
+            // re-initialize select2 for this row after its IDs changed
+            initSelect2($form);
+        });
+    }
 });
 </script>
+
 {% endblock %}

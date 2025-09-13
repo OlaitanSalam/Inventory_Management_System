@@ -154,3 +154,9 @@ AUTHENTICATION_BACKENDS = [
 USE_THOUSAND_SEPARATOR = True
 THOUSAND_SEPARATOR = ','
 NUMBER_GROUPING = 3
+
+# Try to load production settings if available
+try:
+    from .settings_production import *
+except ImportError:
+    pass

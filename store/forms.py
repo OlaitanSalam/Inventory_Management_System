@@ -109,19 +109,22 @@ class AddExistingItemForm(forms.Form):
     item = forms.ModelChoiceField(
         queryset=Item.objects.none(),  # Queryset will be set dynamically
         widget=forms.Select(attrs={'class': 'form-control select2-item'}),
-        label="Select Item"
+        label="Select Item",
+        required=False  # Make optional to allow empty rows
     )
     quantity = forms.IntegerField(
         min_value=0,
         widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        required=True,
-        label="Quantity"
+        required=False,  # Make optional to allow empty rows
+        label="Quantity",
+        initial=0
     )
     min_stock_level = forms.IntegerField(
         min_value=0,
         widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        required=True,
-        label="Minimum Stock Level"
+        required=False,  # Make optional to allow empty rows
+        label="Minimum Stock Level",
+        initial=0
     )
 
     def __init__(self, *args, **kwargs):
@@ -130,3 +133,20 @@ class AddExistingItemForm(forms.Form):
         # Only show items not already in the store's inventory
         existing_item_ids = StoreInventory.objects.filter(store=store).values_list('item_id', flat=True)
         self.fields['item'].queryset = Item.objects.exclude(id__in=existing_item_ids)
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        item = cleaned_data.get('item')
+        quantity = cleaned_data.get('quantity')
+        min_stock_level = cleaned_data.get('min_stock_level')
+        
+        # If any field is filled, require all fields
+        if any([item, quantity is not None, min_stock_level is not None]):
+            if not item:
+                self.add_error('item', 'Item is required when other fields are filled')
+            if quantity is None:
+                self.add_error('quantity', 'Quantity is required when other fields are filled')
+            if min_stock_level is None:
+                self.add_error('min_stock_level', 'Minimum stock level is required when other fields are filled')
+        
+        return cleaned_data

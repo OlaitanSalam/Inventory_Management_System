@@ -19,19 +19,21 @@
                             text-decoration: none;
                         }
                     </style>
+
+                    <!-- Products -->
                     <div class="col-xl-3 col-sm-6 col-12" id="products">
                         <a href="{% url 'productslist' %}">
-                            <div class="card shadow border-0">
+                            <div class="card shadow border-0 h-100">
                                 <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
                                             <span class="h6 font-semibold text-muted text-sm d-block mb-2">Products</span>
-                                            <span class="h3 font-bold mb-0">{{total_items}}</span>
+                                            <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                                {{ total_items }}
+                                            </span>
                                         </div>
-                                        <div class="col-auto">
-                                            <div class="icon icon-shape bg-tertiary text-white text-lg rounded-circle">
-                                                <i class="fa fa-clipboard-list"></i>
-                                            </div>
+                                        <div class="icon icon-shape bg-tertiary text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                            <i class="fa fa-clipboard-list"></i>
                                         </div>
                                     </div>
                                     <div class="mt-2 mb-0 text-sm">
@@ -44,19 +46,40 @@
                             </div>
                         </a>
                     </div>
+
+                    <!-- Total Inventory Value -->
+                    <div class="col-xl-3 col-sm-6 col-12" id="inventory-value">
+                        <div class="card shadow border-0 h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="h6 font-semibold text-muted text-sm d-block mb-2">Total Inventory Value</span>
+                                        <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                            ₦{{ total_inventory_value|floatformat:2 }}
+                                        </span>
+                                    </div>
+                                    <div class="icon icon-shape bg-success text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                        <i class="fa-solid fa-naira-sign"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff -->
                     <div class="col-xl-3 col-sm-6 col-12" id="profiles">
                         <a href="{% url 'profile_list' %}">
-                            <div class="card shadow border-0">
+                            <div class="card shadow border-0 h-100">
                                 <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
                                             <span class="h6 font-semibold text-muted text-sm d-block mb-2">Staff</span>
-                                            <span class="h3 font-bold mb-0">{{profiles_count}}</span>
+                                            <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                                {{ profiles_count }}
+                                            </span>
                                         </div>
-                                        <div class="col-auto">
-                                            <div class="icon icon-shape bg-primary text-white text-lg rounded-circle">
-                                                <i class="fa-solid fa fa-users"></i>
-                                            </div>
+                                        <div class="icon icon-shape bg-primary text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                            <i class="fa fa-users"></i>
                                         </div>
                                     </div>
                                     <div class="mt-2 mb-0 text-sm">
@@ -69,22 +92,22 @@
                             </div>
                         </a>
                     </div>
-                    
+
                     {% if is_central_store %}
-                    <!-- Items Transferred Today Card (Central Store) -->
+                    <!-- Items Transferred Today -->
                     <div class="col-xl-3 col-sm-6 col-12" id="transfers">
                         <a href="{% url 'transferslist' %}">
-                            <div class="card shadow border-0">
+                            <div class="card shadow border-0 h-100">
                                 <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
                                             <span class="h6 font-semibold text-muted text-sm d-block mb-2">Items Transferred Today</span>
-                                            <span class="h3 font-bold mb-0">{{ total_quantity_transferred_today }}</span>
+                                            <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                                {{ total_quantity_transferred_today }}
+                                            </span>
                                         </div>
-                                        <div class="col-auto">
-                                            <div class="icon icon-shape bg-warning text-white text-lg rounded-circle">
-                                                <i class="fa fa-truck"></i>
-                                            </div>
+                                        <div class="icon icon-shape bg-warning text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                            <i class="fa fa-truck"></i>
                                         </div>
                                     </div>
                                     <div class="mt-2 mb-0 text-sm">
@@ -95,19 +118,19 @@
                         </a>
                     </div>
 
-                    <!-- Today's Transfer Revenue Card (Central Store) -->
+                    <!-- Today's Transfer Revenue -->
                     <div class="col-xl-3 col-sm-6 col-12" id="transfer-revenue">
-                        <div class="card shadow border-0">
+                        <div class="card shadow border-0 h-100">
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
                                         <span class="h6 font-semibold text-muted text-sm d-block mb-2">Today's Transfer Revenue</span>
-                                        <span class="h3 font-bold mb-0">₦{{ total_transfer_revenue_today }}</span>
+                                        <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                            ₦{{ total_transfer_revenue_today|floatformat:2 }}
+                                        </span>
                                     </div>
-                                    <div class="col-auto">
-                                        <div class="icon icon-shape bg-info text-white text-lg rounded-circle">
-                                            <i class="fa fa-dollar-sign"></i>
-                                        </div>
+                                    <div class="icon icon-shape bg-info text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                        <i class="fa-solid fa-naira-sign"></i>
                                     </div>
                                 </div>
                                 <div class="mt-2 mb-0 text-sm">
@@ -117,20 +140,20 @@
                         </div>
                     </div>
                     {% else %}
-                    <!-- Items Sold Today Card (Branch Store) -->
+                    <!-- Items Sold Today -->
                     <div class="col-xl-3 col-sm-6 col-12" id="sales">
                         <a href="{% url 'saleslist' %}">
-                            <div class="card shadow border-0">
+                            <div class="card shadow border-0 h-100">
                                 <div class="card-body">
-                                    <div class="row">
-                                        <div class="col">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
                                             <span class="h6 font-semibold text-muted text-sm d-block mb-2">Items Sold Today</span>
-                                            <span class="h3 font-bold mb-0">{{ total_quantity_sold_today }}</span>
+                                            <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                                {{ total_quantity_sold_today }}
+                                            </span>
                                         </div>
-                                        <div class="col-auto">
-                                            <div class="icon icon-shape bg-warning text-white text-lg rounded-circle">
-                                                <i class="fa fa-shopping-cart"></i>
-                                            </div>
+                                        <div class="icon icon-shape bg-warning text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                            <i class="fa fa-shopping-cart"></i>
                                         </div>
                                     </div>
                                     <div class="mt-2 mb-0 text-sm">
@@ -141,19 +164,19 @@
                         </a>
                     </div>
 
-                    <!-- Today's Sales Revenue Card (Branch Store) -->
+                    <!-- Today's Sales Revenue -->
                     <div class="col-xl-3 col-sm-6 col-12" id="revenue">
-                        <div class="card shadow border-0">
+                        <div class="card shadow border-0 h-100">
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
                                         <span class="h6 font-semibold text-muted text-sm d-block mb-2">Today's Sales Revenue</span>
-                                        <span class="h3 font-bold mb-0">₦{{ total_sales_revenue_today }}</span>
+                                        <span class="h3 font-bold mb-0" style="white-space: nowrap;">
+                                            ₦{{ total_sales_revenue_today|floatformat:2 }}
+                                        </span>
                                     </div>
-                                    <div class="col-auto">
-                                        <div class="icon icon-shape bg-info text-white text-lg rounded-circle">
-                                            <i class="fa fa-dollar-sign"></i>
-                                        </div>
+                                    <div class="icon icon-shape bg-info text-white text-lg rounded-circle ms-3 flex-shrink-0">
+                                        <i class="fa-solid fa-naira-sign"></i>
                                     </div>
                                 </div>
                                 <div class="mt-2 mb-0 text-sm">

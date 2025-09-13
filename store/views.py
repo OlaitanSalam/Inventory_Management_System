@@ -89,6 +89,12 @@ def dashboard(request):
     items_count = len(items)
     profiles_count = profiles.count()
 
+    # New: Calculate total inventory value
+    total_inventory_value = 0.0
+    for inv in inventories:
+        effective_price = inv.price if inv.price is not None else inv.item.price or 0.0
+        total_inventory_value += effective_price * inv.quantity
+
     today = timezone.now().date()
 
     if is_central_store:
@@ -148,6 +154,7 @@ def dashboard(request):
         "initial_min_date": initial_min_date,
         "initial_max_date": initial_max_date,
         "is_central_store": is_central_store,
+        "total_inventory_value": total_inventory_value,
     }
 
     if is_central_store:
@@ -770,14 +777,8 @@ class AddExistingItemToInventoryView(LoginRequiredMixin, UserPassesTestMixin, Vi
     success_url = reverse_lazy('productslist')
     
     def get_formset(self, data=None):
-        # Create formset with 1 form by default
-        extra = 1
-        if data:
-            # Get the number of forms from POST data
-            total_forms = int(data.get('form-TOTAL_FORMS', 1))
-            extra = max(total_forms, 1)  # Ensure at least 1 form
-        
-        # Create formset with dynamic number of forms
+        # Create formset with 1 form by default for multiple additions
+        extra = 1 if data is None else 0
         AddExistingItemFormSet = formset_factory(
             AddExistingItemForm, 
             extra=extra
@@ -794,26 +795,50 @@ class AddExistingItemToInventoryView(LoginRequiredMixin, UserPassesTestMixin, Vi
     def post(self, request):
         formset = self.get_formset(request.POST)
         if formset.is_valid():
+            seen_items = set()
+            has_errors = False
+
+            # Validate duplicates before saving
             for form in formset:
-                if form.has_changed() and form.cleaned_data:
+                if form.cleaned_data and form.cleaned_data.get('item'):
+                    item = form.cleaned_data['item']
+                    if item.id in seen_items:
+                        form.add_error('item', 'This item is already selected in another row.')
+                        has_errors = True
+                    else:
+                        seen_items.add(item.id)
+                    
+                    # Check if item already exists in store inventory
+                    if StoreInventory.objects.filter(store=request.user.store, item=item).exists():
+                        form.add_error('item', 'This item already exists in your store inventory.')
+                        has_errors = True
+
+            if has_errors:
+                # Re-render template with errors
+                return render(request, self.template_name, {'formset': formset})
+
+            # Save only if no errors
+            for form in formset:
+                if form.cleaned_data and form.cleaned_data.get('item'):
                     item = form.cleaned_data['item']
                     quantity = form.cleaned_data['quantity']
                     min_stock_level = form.cleaned_data['min_stock_level']
                     store = request.user.store
-                    
-                    # Create inventory record
+
                     StoreInventory.objects.create(
                         store=store,
                         item=item,
                         quantity=quantity,
                         min_stock_level=min_stock_level
                     )
+
+            messages.success(request, "Items added to inventory successfully!")
             return redirect(self.success_url)
+
         return render(request, self.template_name, {'formset': formset})
     
     def test_func(self):
         return self.request.user.is_superuser
-    
 
 def export_products_to_excel(request):
     """
