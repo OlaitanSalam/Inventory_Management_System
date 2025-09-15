@@ -442,6 +442,7 @@ def get_items_ajax_view(request):
         try:
             term = request.POST.get("term", "")
             for_transfer = request.POST.get("for_transfer", "false").lower() == "true"
+            for_purchase = request.POST.get("for_purchase", "false").lower() == "true"
             data = []
 
             if for_transfer:
@@ -449,8 +450,7 @@ def get_items_ajax_view(request):
                 if not request.user.store.central:
                     return JsonResponse({'error': 'Only central store can initiate transfers'}, status=403)
                 items = Item.objects.filter(
-                    name__icontains=term,
-                    store_inventories__store=request.user.store
+                    name__icontains=term
                 ).distinct()[:10]
                 for item in items:
                     inventory = StoreInventory.objects.filter(item=item, store=request.user.store).first()
@@ -460,6 +460,18 @@ def get_items_ajax_view(request):
                         'id': str(item.id),
                         'text': item.name,
                         'price': float(effective_price)
+                    })
+
+            elif for_purchase:
+                # For purchases: return all base items across all stores
+                items = Item.objects.filter(
+                    name__icontains=term
+                ).distinct()[:10]
+                for item in items:
+                    data.append({
+                        'id': str(item.id),
+                        'text': item.name,
+                        'price': float(item.price or 0.0)
                     })
             else:
                 # For sales: return items without varieties and varieties, with effective prices for base items

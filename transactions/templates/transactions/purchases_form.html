@@ -220,7 +220,7 @@
                 data: function (params) {
                     return {
                         term: params.term,
-                        base_items_only: true,  // Ensure only base items are returned
+                        for_purchase: true,  // Changed to fetch base items for purchases
                         csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
                     };
                 },
@@ -229,7 +229,8 @@
                         results: data.map(function(item) {
                             return {
                                 id: item.id,
-                                text: item.text
+                                text: item.text,
+                                price: item.price
                             };
                         })
                     };
