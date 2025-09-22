@@ -1,5 +1,5 @@
 {% extends "store/base.html" %}
-{% block title %}Sales Report{% endblock %}
+{% block title %}Stock Movements{% endblock %}
 
 {% block stylesheets %}
 <style>
@@ -10,7 +10,6 @@
     .page-link { color: #b038a0 !important; }
     .page-link:hover { color: #9a3089 !important; }
     .table th, .table td { text-align: center; }
-    .total-revenue { color: #b038a0; font-weight: bold; font-size: 1.1rem; }
 </style>
 {% endblock %}
 
@@ -19,21 +18,22 @@
     <div class="card shadow-sm rounded p-3">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <h4 class="display-6 mb-0 text-brand">Sales Report</h4>
+                <h4 class="display-6 mb-0 text-brand">Stock Movements</h4>
             </div>
         </div>
     </div>
 </div>
+
 <div class="container px-3">
     <form method="get" class="mb-4">
         <div class="row">
             {% if request.user.is_superuser %}
             <div class="col-md-3">
-                <label>Store</label>
+                <label for="store">Store</label>
                 <select name="store" class="form-control">
+                    <option value="">All Stores</option>
                     {% for store in stores %}
-                    <option value="{{ store.id }}" 
-                        {% if store.id == selected_store %}selected{% endif %}>
+                    <option value="{{ store.id }}" {% if store.id == selected_store %}selected{% endif %}>
                         {{ store.name }}
                     </option>
                     {% endfor %}
@@ -53,74 +53,82 @@
             </div>
         </div>
     </form>
+
     <table class="table table-bordered table-striped table-hover table-sm">
         <thead class="thead-light">
             <tr>
-                {% if is_transfer %}
-                    <th>Transfer Date</th>
-                    <th>Total Transferred</th>
-                {% else %}
-                    <th>Sale Date</th>
-                    <th>Total Sold</th>
-                {% endif %}
+                <th>Date</th>
+                <th>Item</th>
+                <th>Movement Type</th>
+                <th>Quantity</th>
+                <th>Balance After</th>
+                <th>Store</th>
+                <th>Performed By</th>
             </tr>
         </thead>
         <tbody>
-            {% for transaction in transactions %}
+            {% for movement in movements %}
             <tr>
-                <td>{{ transaction.date_added }}</td>
-                <td>₦{{ transaction.grand_total }}</td>
+                <td>{{ movement.timestamp|date:"Y-m-d H:i" }}</td>
+                <td>{{ movement.item.name }}</td>
+                <td>{{ movement.get_movement_type_display }}</td>
+                <td>
+                    {% if movement.quantity < 0 %}
+                        <span class="text-danger">{{ movement.quantity }}</span>
+                    {% else %}
+                        <span class="text-success">{{ movement.quantity }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ movement.balance_after }}</td>
+                <td>{{ movement.store.name }}</td>
+                <td>{{ movement.performed_by }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="2">No data available</td></tr>
+            <tr><td colspan="7">No stock movements found</td></tr>
             {% endfor %}
         </tbody>
     </table>
-    <p class="total-revenue">Total Revenue: ₦{{ total_revenue|floatformat:2 }}</p>
-    {% if is_paginated %}
+
     <div class="d-flex justify-content-center mt-4">
+        {% if is_paginated %}
         <nav aria-label="Page navigation">
             <ul class="pagination">
                 {% if page_obj.has_previous %}
                 <li class="page-item">
                     <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Previous">
-                        <span aria-hidden="true">«</span>
+                        <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
-                    <span class="page-link" aria-label="Previous">
-                        <span aria-hidden="true">«</span>
-                    </span>
+                    <span class="page-link" aria-label="Previous"><span aria-hidden="true">&laquo;</span></span>
                 </li>
                 {% endif %}
+
                 {% for i in paginator.page_range %}
                 {% if page_obj.number == i %}
-                <li class="page-item active">
-                    <span class="page-link">{{ i }} <span class="sr-only">(current)</span></span>
-                </li>
+                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                 {% else %}
                 <li class="page-item">
                     <a class="page-link" href="?page={{ i }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ i }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
+
                 {% if page_obj.has_next %}
                 <li class="page-item">
                     <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Next">
-                        <span aria-hidden="true">»</span>
+                        <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
-                    <span class="page-link" aria-label="Next">
-                        <span aria-hidden="true">»</span>
-                    </span>
+                    <span class="page-link" aria-label="Next"><span aria-hidden="true">&raquo;</span></span>
                 </li>
                 {% endif %}
             </ul>
         </nav>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 {% endblock %}

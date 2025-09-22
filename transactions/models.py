@@ -4,9 +4,19 @@ from store.models import Item, Store, StoreInventory, Variety
 from accounts.models import Vendor, Profile
 from django.db import transaction
 import uuid
+from django.utils import timezone
 
 
 DELIVERY_CHOICES = [("P", "Pending"), ("S", "Successful")]
+MOVEMENT_TYPES = [
+    ("OPENING", "Opening Stock"),
+    ("PURCHASE", "Purchase"),
+    ("SALE", "Sale"),
+    ("TRANSFER_OUT", "Transfer Out"),
+    ("TRANSFER_IN", "Transfer In"),
+    ("USAGE", "Internal Usage"),
+    ("ADJUSTMENT", "Manual Adjustment"),
+]
 
 class TaxRate(models.Model):
     percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
@@ -122,16 +132,49 @@ class PurchaseOrder(models.Model):
         return f"Purchase Order {self.id} - {self.vendor.name}"
 
     def save(self, *args, **kwargs):
+        """
+        Enhanced save:
+        - Detect previous delivery_status.
+        - After saving, if we just transitioned to 'S' (Successful),
+          update inventory quantities and create StockMovement entries.
+        """
+        previous_status = None
         if self.pk:
-            original = PurchaseOrder.objects.get(pk=self.pk)
-            if original.delivery_status != self.delivery_status and self.delivery_status == 'S':
-                for detail in self.details.all():
-                    inventory, created = StoreInventory.objects.get_or_create(
-                        item=detail.item, store=self.store, defaults={'quantity': 0}
-                    )
-                    inventory.quantity += detail.quantity
-                    inventory.save()
+            try:
+                previous_status = PurchaseOrder.objects.get(pk=self.pk).delivery_status
+            except PurchaseOrder.DoesNotExist:
+                previous_status = None
+
+        # Save order first (so self.pk exists and we can safely query details)
         super().save(*args, **kwargs)
+
+        # If we transitioned to 'S' from a different status (or from None on first save),
+        # apply the inventory changes and log StockMovements.
+        if self.delivery_status == 'S' and previous_status != 'S':
+            for detail in self.details.all():
+                # Update or create the store inventory
+                inventory, created = StoreInventory.objects.get_or_create(
+                    item=detail.item,
+                    store=self.store,
+                    defaults={'quantity': 0}
+                )
+                inventory.quantity += detail.quantity
+                inventory.save()
+
+                # Create a unique reference id for this movement (prevents duplicates)
+                ref_id = f"PO-{self.id}-PD-{detail.id}"
+
+                # Create StockMovement entry
+                StockMovement.objects.create(
+                    store=self.store,
+                    item=detail.item,
+                    variety=None,
+                    movement_type="PURCHASE",
+                    quantity=detail.quantity,
+                    balance_after=inventory.quantity,
+                    reference_id=ref_id,
+                    performed_by=self.created_by,
+                )
 
     class Meta:
         ordering = ["-order_date"]
@@ -148,3 +191,21 @@ class PurchaseDetail(models.Model):
 
     def __str__(self):
         return f"{self.item.name} (Order {self.purchase_order.id})"
+    
+
+class StockMovement(models.Model):
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="stock_movements")
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="stock_movements")
+    variety = models.ForeignKey(Variety, null=True, blank=True, on_delete=models.SET_NULL, related_name="stock_movements")
+    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
+    quantity = models.IntegerField()  # + for inflow, - for outflow
+    balance_after = models.IntegerField(default=0)  # balance in StoreInventory after movement
+    reference_id = models.CharField(max_length=50, blank=True, null=True)  # e.g., sale_id, transfer_id
+    performed_by = models.ForeignKey(Profile, null=True, blank=True, on_delete=models.SET_NULL)
+    timestamp = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.movement_type} - {self.item.name} ({self.quantity}) in {self.store.name}"

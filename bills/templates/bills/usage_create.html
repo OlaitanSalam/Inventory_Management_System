@@ -3,6 +3,14 @@
 {% block title %}Record Internal Usage{% endblock %}
 
 {% block stylesheets %}
+<style>
+    .bg-brand { background-color: #b038a0 !important; }
+    .btn-brand { background-color: #b038a0 !important; border-color: #b038a0 !important; color: #fff !important; }
+    .btn-brand:hover { background-color: #9a3089 !important; border-color: #9a3089 !important; }
+    .btn-outline-brand { color: #b038a0 !important; border: 1px solid #b038a0 !important; }
+    .btn-outline-brand:hover { background-color: #b038a0 !important; color: #fff !important; }
+</style>
+
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
 {% endblock %}
@@ -10,7 +18,8 @@
 {% block content %}
 <div class="container py-5">
     <div class="mb-4">
-        <a href="{% url 'usage_list' %}" class="btn btn-outline-success">
+        <a href="{% url 'usage_list' %}" class="btn btn-outline-brand">
+
             <i class="fas fa-arrow-left me-2"></i> Go Back
         </a>
     </div>
@@ -18,7 +27,8 @@
         <div class="row">
             <div class="col-lg-8 mb-4">
                 <div class="card border-light shadow-sm">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-brand text-white">
+
                         <h5 class="mb-0">Usage Items</h5>
                     </div>
                     <div class="card-body">
@@ -49,7 +59,7 @@
             </div>
             <div class="col-lg-4 mb-4">
                 <div class="card border-light shadow-sm">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header bg-brand text-white">
                         <h5 class="mb-0">Usage Details</h5>
                     </div>
                     <div class="card-body">
@@ -62,7 +72,7 @@
                             <label for="total_amount" class="form-label">Total Amount</label>
                             <input name="total_amount" type="number" class="form-control" id="total_amount" readonly value="0.00">
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Record Usage</button>
+                        <button type="submit" class="btn btn-brand w-100">Record Usage</button>
                     </div>
                 </div>
             </div>

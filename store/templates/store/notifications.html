@@ -69,8 +69,8 @@
                 {% else %}
                 <span class="me-2">(Read)</span>
                 {% endif %}
-                <a href="{% url 'purchaseorder-create' %}" class="btn btn-sm btn-brand-light me-2">Take Action</a>
-                <form method="post" action="{% url 'delete_alert' pk=alert.pk %}">
+                <a href="{% url 'create_purchase_from_alert' alert.pk %}" class="btn btn-sm btn-brand-light me-2">Take Action</a>
+    <form method="post" action="{% url 'delete_alert' pk=alert.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
                 </form>

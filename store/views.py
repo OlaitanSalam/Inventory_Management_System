@@ -96,6 +96,33 @@ def dashboard(request):
         total_inventory_value += effective_price * inv.quantity
 
     today = timezone.now().date()
+    first_day_of_month = today.replace(day=1)
+    last_day_of_month = (first_day_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+    if is_central_store:
+        # Central store: Calculate transfer metrics
+        daily_transfers = Transfer.objects.filter(store=current_store, date_added__date=today)
+        total_quantity_transferred_today = TransferDetail.objects.filter(transfer__in=daily_transfers).aggregate(total=Sum('quantity'))['total'] or 0
+        total_transfer_revenue_today = daily_transfers.aggregate(total=Sum('grand_total'))['total'] or 0
+
+        # Monthly revenue for central store (transfers)
+        monthly_transfers = Transfer.objects.filter(
+            store=current_store,
+            date_added__date__range=[first_day_of_month, last_day_of_month]
+        )
+        total_transfer_revenue_month = monthly_transfers.aggregate(total=Sum('grand_total'))['total'] or 0
+    else:
+        # Branch store: Calculate sales metrics
+        daily_sales = Sale.objects.filter(store=current_store, date_added__date=today)
+        total_quantity_sold_today = SaleDetail.objects.filter(sale__in=daily_sales).aggregate(total=Sum('quantity'))['total'] or 0
+        total_sales_revenue_today = daily_sales.aggregate(total=Sum('grand_total'))['total'] or 0
+
+        # Monthly revenue for branch store (sales)
+        monthly_sales = Sale.objects.filter(
+            store=current_store,
+            date_added__date__range=[first_day_of_month, last_day_of_month]
+        )
+        total_sales_revenue_month = monthly_sales.aggregate(total=Sum('grand_total'))['total'] or 0
 
     if is_central_store:
         # Central store: Calculate transfer metrics
@@ -161,11 +188,13 @@ def dashboard(request):
         context.update({
             "total_quantity_transferred_today": total_quantity_transferred_today,
             "total_transfer_revenue_today": total_transfer_revenue_today,
+            "total_transfer_revenue_month": total_transfer_revenue_month,
         })
     else:
         context.update({
             "total_quantity_sold_today": total_quantity_sold_today,
             "total_sales_revenue_today": total_sales_revenue_today,
+            "total_sales_revenue_month": total_sales_revenue_month,
         })
 
     return render(request, "store/dashboard.html", context)
@@ -471,7 +500,7 @@ def get_items_ajax_view(request):
                     data.append({
                         'id': str(item.id),
                         'text': item.name,
-                        'price': float(item.price or 0.0)
+                        'price': float(item.purchase_price or 0)
                     })
             else:
                 # For sales: return items without varieties and varieties, with effective prices for base items
@@ -899,3 +928,11 @@ def export_products_to_excel(request):
     response['Content-Disposition'] = 'attachment; filename=products.xlsx'
     workbook.save(response)
     return response
+
+@login_required
+def create_purchase_from_alert(request, alert_id):
+    alert = get_object_or_404(StockAlert, id=alert_id, store_inventory__store=request.user.store)
+    item = alert.store_inventory.item
+    # Set session data for pre-fill
+    request.session['pre_fill_item'] = item.id
+    return redirect('purchaseorder-create')

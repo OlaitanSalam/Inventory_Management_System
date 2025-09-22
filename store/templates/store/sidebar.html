@@ -141,6 +141,7 @@
                     <li><a class="dropdown-item {% if request.resolver_match.url_name == 'performance_stats' %}active{% endif %}" href="{% url 'performance_stats' %}">Performance Statistics</a></li>
                     {% if request.user.is_superuser %}
                     <li><a class="dropdown-item {% if request.resolver_match.url_name == 'branch_sales_comparison' %}active{% endif %}" href="{% url 'branch_sales_comparison' %}">Branch Sales Comparison</a></li>
+                    <li><a class="dropdown-item {% if request.resolver_match.url_name == 'stock-movements' %}active{% endif %}" href="{% url 'stock-movements' %}">Stock Movements</a></li>
                     {% endif %}
                 </ul>
             </li>

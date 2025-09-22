@@ -7,3 +7,5 @@ class TransactionsConfig(AppConfig):
 
     def ready(self):
         import transactions.signals
+
+

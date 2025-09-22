@@ -3,12 +3,13 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 # Local app imports
 from .views import (
     PurchaseOrderListView,
     PurchaseOrderDetailView,
     PurchaseOrderCreateView,
-    PurchaseOrderUpdateView,  # New view for updating PurchaseOrder
+    PurchaseOrderUpdateView,  
     PurchaseOrderDeleteView,
     SaleListView,
     SaleDetailView,
@@ -16,9 +17,10 @@ from .views import (
     SaleDeleteView,
     export_sales_to_excel,
     export_purchases_to_excel,
-    TransferListView,  # New
-    TransferDetailView,  # New
-    TransferCreateView,  # New
+    TransferListView,  
+    TransferDetailView,  
+    TransferCreateView,  
+    StockMovementListView  
 )
 
 # URL patterns
@@ -45,6 +47,9 @@ urlpatterns = [
     # Sales and purchases export
     path('sales/export/', export_sales_to_excel, name='sales-export'),
     path('purchase-orders/export/', export_purchases_to_excel, name='purchaseorders-export'),
+
+    # Stock movements log view (optional)
+     path("movements/", StockMovementListView.as_view(), name="stock-movements"),
 ]
 
 # Static media files configuration for development

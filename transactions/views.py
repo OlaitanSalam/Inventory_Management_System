@@ -18,6 +18,8 @@ from django.forms import inlineformset_factory
 from .forms import PurchaseOrderForm, PurchaseDetailForm
 from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
+from django.views.generic import ListView
+from .models import StockMovement
 
 logger = logging.getLogger(__name__)
 
@@ -277,18 +279,34 @@ class PurchaseOrderDetailView(LoginRequiredMixin, DetailView):
         else:
             return PurchaseOrder.objects.filter(store=self.request.user.store)
 
+# transactions/views.py (replace the PurchaseOrderCreateView function)
 def PurchaseOrderCreateView(request):
     if request.user.store.central:
         vendors = Vendor.objects.all()
     else:
-         central_stores = Store.objects.filter(central=True)
-         if central_stores.exists():
-             vendors = Vendor.objects.filter(name__in=[store.name for store in central_stores])
-         else:
-             vendors = Vendor.objects.none()
+        central_stores = Store.objects.filter(central=True)
+        if central_stores.exists():
+            vendors = Vendor.objects.filter(name__in=[store.name for store in central_stores])
+        else:
+            vendors = Vendor.objects.none()
+
+    pre_fill_item_id = request.session.pop('pre_fill_item', None)
+    pre_fill_item = None
+    if pre_fill_item_id:
+        try:
+            item = Item.objects.get(id=pre_fill_item_id)
+            pre_fill_item = {
+                "id": item.id,
+                "name": item.name,
+                "price": getattr(item, "price", 0.0)
+            }
+        except Item.DoesNotExist:
+            pass
+
     context = {
         "active_icon": "purchases",
-        "vendors": vendors
+        "vendors": vendors,
+        "pre_fill_item": json.dumps(pre_fill_item) if pre_fill_item else "null",
     }
 
     if request.method == 'POST':
@@ -301,22 +319,26 @@ def PurchaseOrderCreateView(request):
                 for field in required_fields:
                     if field not in data:
                         raise ValueError(f"Missing required field: {field}")
+
+                # parse delivery_date
                 delivery_date_str = data["delivery_date"]
                 delivery_date = parse(delivery_date_str)
                 if not timezone.is_aware(delivery_date):
                     delivery_date = timezone.make_aware(delivery_date, timezone.get_default_timezone())
-               
+
+                # Important: create the PurchaseOrder as PENDING initially.
+                # We'll set the real delivery_status after creating the details, then call save()
                 purchase_order_attributes = {
                     "vendor_id": data["vendor"],
                     "delivery_date": delivery_date,
-                    "delivery_status": data["delivery_status"],
+                    "delivery_status": 'P',   # <-- force pending at creation
                     "store": request.user.store,
-                    "created_by": request.user  # Set the creator
+                    "created_by": request.user
                 }
 
                 with transaction.atomic():
                     new_purchase_order = PurchaseOrder.objects.create(**purchase_order_attributes)
-                    logger.info(f"PurchaseOrder created: {new_purchase_order}")
+                    logger.info(f"PurchaseOrder created (PENDING): {new_purchase_order}")
 
                     items = data["items"]
                     if not isinstance(items, list):
@@ -329,7 +351,7 @@ def PurchaseOrderCreateView(request):
                             raise ValueError("Quantity and total amount must be greater than 0")
 
                         item_instance = Item.objects.get(id=int(item["id"]))
-                        
+
                         detail_attributes = {
                             "purchase_order": new_purchase_order,
                             "item": item_instance,
@@ -340,9 +362,17 @@ def PurchaseOrderCreateView(request):
                         PurchaseDetail.objects.create(**detail_attributes)
                         logger.info(f"PurchaseDetail created: {detail_attributes}")
 
+                    # Calculate and set total value
                     total_value = sum(float(item["total_item"]) for item in items)
                     new_purchase_order.total_value = total_value
+
+                    # Now set the real delivery status requested by the user (P or S)
+                    requested_status = data.get("delivery_status", 'P')
+                    new_purchase_order.delivery_status = requested_status
+
+                    # This save() will now detect the transition (P -> S) and perform inventory updates
                     new_purchase_order.save()
+                    logger.info(f"PurchaseOrder saved with status {new_purchase_order.delivery_status}")
 
                 return JsonResponse({
                     'status': 'success',
@@ -361,6 +391,7 @@ def PurchaseOrderCreateView(request):
                 return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
     return render(request, "transactions/purchases_form.html", context=context)
+
 
 class PurchaseOrderUpdateView(LoginRequiredMixin, UpdateView):
     model = PurchaseOrder
@@ -570,3 +601,44 @@ class TransferListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Transfer.objects.filter(store=self.request.user.store)
+    
+
+# transactions/views.py
+
+class StockMovementListView(LoginRequiredMixin, ListView):
+    model = StockMovement
+    template_name = "transactions/stock_movement_list.html"
+    context_object_name = "movements"
+    paginate_by = 15
+
+    def get_queryset(self):
+        qs = StockMovement.objects.all()
+        request = self.request
+
+        # If superuser, allow selecting store via GET param
+        if request.user.is_superuser:
+            store_id = request.GET.get("store")
+            if store_id and store_id.isdigit():
+                qs = qs.filter(store_id=store_id)
+        else:
+            qs = qs.filter(store=request.user.store)
+
+        # Optional date filtering
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        if start_date and end_date:
+            qs = qs.filter(timestamp__date__range=[start_date, end_date])
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        request = self.request
+
+        if request.user.is_superuser:
+            context["stores"] = Store.objects.all()
+            store_id = request.GET.get("store")
+            context["selected_store"] = int(store_id) if store_id and store_id.isdigit() else None
+        return context
+ 
+

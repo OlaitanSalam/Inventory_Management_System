@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Sale, SaleDetail, PurchaseOrder, PurchaseDetail, TaxRate, Transfer, TransferDetail
+from .models import StockMovement
 
 class SaleDetailInline(admin.TabularInline):
     model = SaleDetail
@@ -126,3 +127,10 @@ class TaxRateAdmin(admin.ModelAdmin):
     search_fields = ('percentage',)
     ordering = ('percentage',)
     list_per_page = 10
+
+@admin.register(StockMovement)
+class StockMovementAdmin(admin.ModelAdmin):
+    list_display = ("timestamp", "store", "item", "movement_type", "quantity", "balance_after", "performed_by")
+    list_filter = ("movement_type", "store", "timestamp")
+    search_fields = ("item__name", "store__name", "performed_by__email", "reference_id")
+    readonly_fields = [f.name for f in StockMovement._meta.fields]  # make everything read-only
