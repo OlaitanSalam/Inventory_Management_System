@@ -136,6 +136,8 @@ path('notifications/', NotificationListView.as_view(), name='notifications'),
     path('notifications/mark-all-as-read/', mark_all_alerts_as_read, name='mark_all_alerts_as_read'),
     path('ajax/get-unread-alerts-count/', get_unread_alerts_count, name='get_unread_alerts_count'),
     path('notifications/delete/<int:pk>/', views.delete_alert, name='delete_alert'),
+    path('purchase-from-alerts/', views.create_purchase_from_alerts, name='create_purchase_from_alerts'),
+
     path('purchase-from-alert/<int:alert_id>/', views.create_purchase_from_alert, name='create_purchase_from_alert'),
     #this are my statistics urls
     path('reports/usage/', views.UsageReportView.as_view(), name='usage_report'),

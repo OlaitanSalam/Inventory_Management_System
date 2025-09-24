@@ -46,39 +46,60 @@
 {% block content %}
 <div class="container p-5">
     <h2 class="text-brand mb-4">Notifications</h2>
+
+    <!-- Mark all read -->
     <div class="d-flex justify-content-end mb-3">
         <form method="post" action="{% url 'mark_all_alerts_as_read' %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-brand">Mark All as Read</button>
         </form>
     </div>
-    <ul class="list-group">
-        {% for alert in alerts %}
-        <li class="list-group-item d-flex justify-content-between align-items-center {% if not alert.is_read %}list-group-item-warning{% endif %}">
-            <div>
-                <strong>{{ alert.store_inventory.item.name }}</strong> in {{ alert.store_inventory.store.name }}:
-                Current stock: {{ alert.store_inventory.quantity }}, Minimum: {{ alert.store_inventory.min_stock_level }}
-                - {{ alert.get_recommendation }}
-            </div>
-            <div class="d-flex align-items-center">
-                {% if not alert.is_read %}
-                <form method="post" action="{% url 'mark_alert_as_read' pk=alert.pk %}" class="me-2">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-secondary">Mark as Read</button>
-                </form>
-                {% else %}
-                <span class="me-2">(Read)</span>
-                {% endif %}
-                <a href="{% url 'create_purchase_from_alert' alert.pk %}" class="btn btn-sm btn-brand-light me-2">Take Action</a>
-    <form method="post" action="{% url 'delete_alert' pk=alert.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-                </form>
-            </div>
-        </li>
-        {% empty %}
-        <li class="list-group-item">No notifications at this time.</li>
-        {% endfor %}
-    </ul>
+
+    <!-- Bulk purchase form -->
+    <form method="post" action="{% url 'create_purchase_from_alerts' %}">
+        {% csrf_token %}
+        <ul class="list-group">
+            {% for alert in alerts %}
+            <li class="list-group-item d-flex justify-content-between align-items-center {% if not alert.is_read %}list-group-item-warning{% endif %}">
+                <div class="d-flex align-items-center">
+                    <!-- Checkbox for bulk -->
+                    <input type="checkbox" name="alerts" value="{{ alert.pk }}" class="form-check-input me-2">
+                    <div>
+                        <strong>{{ alert.store_inventory.item.name }}</strong> in {{ alert.store_inventory.store.name }}:
+                        Current stock: {{ alert.store_inventory.quantity }}, Minimum: {{ alert.store_inventory.min_stock_level }}
+                        - {{ alert.get_recommendation }}
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center">
+                    <!-- Mark as read (link instead of nested form) -->
+                    {% if not alert.is_read %}
+                    <a href="{% url 'mark_alert_as_read' pk=alert.pk %}" class="btn btn-sm btn-secondary me-2">Mark as Read</a>
+                    {% else %}
+                    <span class="me-2">(Read)</span>
+                    {% endif %}
+
+                    <!-- Single item action -->
+                    <a href="{% url 'create_purchase_from_alert' alert.pk %}" class="btn btn-sm btn-brand-light me-2">Take Action</a>
+
+                    <!-- Delete alert (link instead of nested form) -->
+                    <a href="{% url 'delete_alert' pk=alert.pk %}" 
+                       class="btn btn-sm btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this alert?');">
+                       <i class="fa fa-trash"></i>
+                    </a>
+                </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item">No notifications at this time.</li>
+            {% endfor %}
+        </ul>
+
+        <!-- Bulk create button -->
+        <div class="mt-3">
+            <button type="submit" class="btn btn-brand">Create Purchase for Selected</button>
+        </div>
+    </form>
 </div>
+
 {% endblock %}

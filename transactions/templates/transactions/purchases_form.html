@@ -362,17 +362,28 @@
 </script>
 <script>
 $(document).ready(function() {
+    // Single item
     var preFillItem = {{ pre_fill_item|safe }};
     if (preFillItem) {
         purchaseOrder.add_item({
             id: preFillItem.id,
             text: preFillItem.name,
             price: preFillItem.price || 0,
-            // number, quantity, and total_item will now be auto-set in add_item()
+        });
+    }
+
+    // Multiple items
+    var preFillItems = {{ pre_fill_items|safe }};
+    if (preFillItems.length > 0) {
+        preFillItems.forEach(function(item) {
+            purchaseOrder.add_item({
+                id: item.id,
+                text: item.name,
+                price: item.price || 0,
+            });
         });
     }
 });
-
 </script>
 
 {% endblock javascripts %}

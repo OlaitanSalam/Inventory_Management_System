@@ -2,6 +2,8 @@
 {% block title %}Stock Movements{% endblock %}
 
 {% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
 <style>
     .text-brand { color: #b038a0 !important; }
     .btn-brand { background-color: #b038a0 !important; border-color: #b038a0 !important; color: white !important; }
@@ -25,33 +27,49 @@
 </div>
 
 <div class="container px-3">
-    <form method="get" class="mb-4">
-        <div class="row">
-            {% if request.user.is_superuser %}
-            <div class="col-md-3">
-                <label for="store">Store</label>
-                <select name="store" class="form-control">
-                    <option value="">All Stores</option>
-                    {% for store in stores %}
-                    <option value="{{ store.id }}" {% if store.id == selected_store %}selected{% endif %}>
-                        {{ store.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% endif %}
-            <div class="col-md-3">
-                <label>Start Date</label>
-                <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
-            </div>
-            <div class="col-md-3">
-                <label>End Date</label>
-                <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
-            </div>
-            <div class="col-md-3 align-self-end">
-                <button type="submit" class="btn btn-brand">Filter</button>
-            </div>
+    <form method="get" class="mb-4 row g-3">
+        {% if request.user.is_superuser %}
+        <div class="col-md-3">
+            <label for="store">Store</label>
+            <select name="store" class="form-control">
+                <option value="">All Stores</option>
+                {% for store in stores %}
+                <option value="{{ store.id }}" {% if store.id == selected_store %}selected{% endif %}>
+                    {{ store.name }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
+        {% endif %}
+
+        <div class="col-md-3">
+    <label for="item">Item</label>
+    <select name="item" id="item" class="form-control select2-item">
+        <option value="" {% if not selected_item %}selected{% endif %}>All Items</option>
+        {% for item in items %}
+        <option value="{{ item.id }}" {% if item.id|stringformat:"s" == selected_item %}selected{% endif %}>
+            {{ item.name }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+
+
+        <div class="col-md-2">
+            <label>Start Date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+        </div>
+
+        <div class="col-md-2">
+            <label>End Date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+        </div>
+
+        <div class="col-md-2 align-self-end">
+    <button type="submit" class="btn btn-brand w-100 mb-2">Filter</button>
+    <a href="{% url 'stock-movements' %}" class="btn btn-warning w-100">Reset</a>
+</div>
+
     </form>
 
     <table class="table table-bordered table-striped table-hover table-sm">
@@ -95,13 +113,13 @@
             <ul class="pagination">
                 {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Previous">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.item %}&item={{ request.GET.item }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
-                    <span class="page-link" aria-label="Previous"><span aria-hidden="true">&laquo;</span></span>
+                    <span class="page-link">&laquo;</span>
                 </li>
                 {% endif %}
 
@@ -110,20 +128,20 @@
                 <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                 {% else %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ i }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ i }}</a>
+                    <a class="page-link" href="?page={{ i }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.item %}&item={{ request.GET.item }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ i }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Next">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.store %}&store={{ request.GET.store }}{% endif %}{% if request.GET.item %}&item={{ request.GET.item }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 {% else %}
                 <li class="page-item disabled">
-                    <span class="page-link" aria-label="Next"><span aria-hidden="true">&raquo;</span></span>
+                    <span class="page-link">&raquo;</span>
                 </li>
                 {% endif %}
             </ul>
@@ -131,4 +149,19 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#item').select2({
+        theme: 'bootstrap4',
+        placeholder: "Search for an item...",
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
 {% endblock %}

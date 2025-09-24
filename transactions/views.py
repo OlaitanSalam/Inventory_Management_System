@@ -290,23 +290,37 @@ def PurchaseOrderCreateView(request):
         else:
             vendors = Vendor.objects.none()
 
-    pre_fill_item_id = request.session.pop('pre_fill_item', None)
+     # Single item prefill
     pre_fill_item = None
+    pre_fill_item_id = request.session.pop('pre_fill_item', None)
     if pre_fill_item_id:
         try:
             item = Item.objects.get(id=pre_fill_item_id)
             pre_fill_item = {
                 "id": item.id,
                 "name": item.name,
-                "price": getattr(item, "price", 0.0)
+                "price": float(getattr(item, "purchase_price", None) or getattr(item, "price", 0) or 0)
             }
         except Item.DoesNotExist:
             pass
+
+    # Multiple items prefill
+    pre_fill_items = []
+    pre_fill_item_ids = request.session.pop('pre_fill_items', None)
+    if pre_fill_item_ids:
+        items = Item.objects.filter(id__in=pre_fill_item_ids)
+        for it in items:
+            pre_fill_items.append({
+                "id": it.id,
+                "name": it.name,
+                "price": float(getattr(it, "purchase_price", None) or getattr(it, "price", 0) or 0)
+            })
 
     context = {
         "active_icon": "purchases",
         "vendors": vendors,
         "pre_fill_item": json.dumps(pre_fill_item) if pre_fill_item else "null",
+        "pre_fill_items": json.dumps(pre_fill_items) if pre_fill_items else "[]",
     }
 
     if request.method == 'POST':
@@ -615,7 +629,6 @@ class StockMovementListView(LoginRequiredMixin, ListView):
         qs = StockMovement.objects.all()
         request = self.request
 
-        # If superuser, allow selecting store via GET param
         if request.user.is_superuser:
             store_id = request.GET.get("store")
             if store_id and store_id.isdigit():
@@ -623,7 +636,12 @@ class StockMovementListView(LoginRequiredMixin, ListView):
         else:
             qs = qs.filter(store=request.user.store)
 
-        # Optional date filtering
+        # filter by item
+        item_id = request.GET.get("item")
+        if item_id and item_id.isdigit():
+            qs = qs.filter(item_id=item_id)
+
+        # date filter
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         if start_date and end_date:
@@ -635,10 +653,30 @@ class StockMovementListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         request = self.request
 
+        # Stores (for superusers only)
         if request.user.is_superuser:
             context["stores"] = Store.objects.all()
             store_id = request.GET.get("store")
             context["selected_store"] = int(store_id) if store_id and store_id.isdigit() else None
+        else:
+            # non-superuser only sees their own store
+            store_id = request.user.store.id
+            context["selected_store"] = store_id
+
+        # Items: filter by store if a store is selected
+        store_id = request.GET.get("store") or context["selected_store"]
+        if store_id:
+            context["items"] = Item.objects.filter(store_inventories__store_id=store_id).distinct()
+        else:
+            context["items"] = Item.objects.all()
+
+        # track which item is selected
+        context["selected_item"] = request.GET.get("item")
+
         return context
+
+
+
+
  
 

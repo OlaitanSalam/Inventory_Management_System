@@ -936,3 +936,23 @@ def create_purchase_from_alert(request, alert_id):
     # Set session data for pre-fill
     request.session['pre_fill_item'] = item.id
     return redirect('purchaseorder-create')
+
+@login_required
+def create_purchase_from_alerts(request):
+    if request.method == "POST":
+        alert_ids = request.POST.getlist("alerts")
+        if not alert_ids:
+            messages.error(request, "Please select at least one alert.")
+            return redirect("notifications")
+
+        alerts = StockAlert.objects.filter(
+            id__in=alert_ids,
+            store_inventory__store=request.user.store
+        ).select_related("store_inventory__item")
+
+        item_ids = [alert.store_inventory.item.id for alert in alerts]
+
+        request.session["pre_fill_items"] = item_ids
+        return redirect("purchaseorder-create")
+
+    return redirect("notifications")
