@@ -1,35 +1,40 @@
+# forms.py
 from django import forms
-
 from .models import PurchaseOrder, PurchaseDetail
 
-class PurchaseOrderForm(forms.ModelForm):
-    class Meta:
-        model = PurchaseOrder
-        fields = ['vendor', 'delivery_date', 'delivery_status']
-        widgets = {
-            'vendor': forms.Select(attrs={'class': 'form-control'}),
-            'delivery_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'delivery_status': forms.Select(attrs={'class': 'form-control'}),
-        }
-
-class PurchaseDetailForm(forms.ModelForm):
-    class Meta:
-        model = PurchaseDetail
-        fields = ['item', 'quantity', 'total_value']
-        widgets = {
-            'item': forms.Select(attrs={'class': 'form-control'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control'}),
-            'total_value': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-        }
-
-
-class BootstrapMixin(forms.ModelForm):
+class BootstrapMixin:
     """
-    A mixin to add Bootstrap classes to form fields.
+    Adds 'form-control' (and preserves existing classes) to all widgets
+    so Django forms look like Bootstrap inputs.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs.setdefault('class', 'form-control')
+        for name, field in self.fields.items():
+            existing = field.widget.attrs.get("class", "")
+            # ensure we don't duplicate class
+            classes = existing.split()
+            if "form-control" not in classes:
+                classes.append("form-control")
+            field.widget.attrs["class"] = " ".join(classes).strip()
 
 
+class PurchaseOrderForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = PurchaseOrder
+        fields = ["vendor", "delivery_date", "delivery_status"]
+        widgets = {
+            "vendor": forms.Select(),
+            "delivery_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "delivery_status": forms.Select(),
+        }
+
+
+class PurchaseDetailForm(BootstrapMixin, forms.ModelForm):
+    class Meta:
+        model = PurchaseDetail
+        fields = ["item", "quantity", "total_value"]
+        widgets = {
+            "item": forms.Select(),
+            "quantity": forms.NumberInput(),
+            "total_value": forms.NumberInput(attrs={"step": "0.01"}),
+        }

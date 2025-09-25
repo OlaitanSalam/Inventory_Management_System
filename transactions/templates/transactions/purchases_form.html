@@ -136,254 +136,272 @@
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js" defer></script>
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-touchspin/3.1.0/jquery.bootstrap-touchspin.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.15/dist/sweetalert2.all.min.js" defer></script>
 
 <script>
-    function roundTo(n, digits) {
-        if (digits === undefined) digits = 0;
-        var multiplicator = Math.pow(10, digits);
-        n = parseFloat((n * multiplicator).toFixed(11));
-        return Math.round(n) / multiplicator;
-    }
+function roundTo(n, digits) {
+    if (digits === undefined) digits = 0;
+    var multiplicator = Math.pow(10, digits);
+    n = parseFloat((n * multiplicator).toFixed(11));
+    return Math.round(n) / multiplicator;
+}
 
-    var number = 1;
-    var purchaseOrder = {
-        items: [],
-        calculate_total: function () {
-            var total = 0.00;
-            $.each(this.items, function (pos, dict) {
-                dict.pos = pos;
-                total += parseFloat(dict.total_item) || 0;
-            });
-            $('input[name="total_value"]').val(roundTo(total, 2));
-        },
-        add_item: function (item) {
-            // Auto-generate serial number
-            item.number = this.items.length + 1;
+var number = 1;
+var tblItems;
 
-            // Defaults
-            if (!item.quantity) item.quantity = 1;
-            if (!item.price) item.price = 0;
-
-            // Always recalc total
-            item.total_item = roundTo(item.price * item.quantity, 2);
-
-            this.items.push(item);
-            this.list_item();
-        },
-
-        list_item: function () {
-            this.calculate_total();
-            tblItems = $("#table_items").DataTable({
-                destroy: true,
-                data: this.items,
-                columns: [
-                    {"data": "number"},
-                    {"data": "text"},
-                    {"data": "quantity"},
-                    {"data": "price"},
-                    {"data": "total_item"},
-                    {"data": "id"},
-                ],
-                columnDefs: [
-                    {
-                        class: 'text-center',
-                        targets: [2],
-                        render: function (data, type, row) {
-                            return '<input name="quantity" type="number" class="form-control text-center" value="' + row.quantity + '">';
-                        },
-                    },
-                    {
-                        class: 'text-center',
-                        targets: [3],
-                        render: function (data, type, row) {
-                            return row.price.toFixed(2);
-                        },
-                    },
-                    {
-                        class: 'text-center',
-                        targets: [4],
-                        render: function (data, type, row) {
-                            return row.total_item.toFixed(2);
-                        },
-                    },
-                    {
-                        class: 'text-center',
-                        targets: [5],
-                        orderable: false,
-                        render: function () {
-                            return '<a rel="delete" type="button" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i></a>';
-                        },
-                    },
-                ],
-                rowCallback(row, data) {
-                    $(row).find("input[name='quantity']").TouchSpin({
-                        min: 1,
-                        max: 1000000,
-                        step: 1
-                    });
-                },
-            });
-        },
-    };
-
-    $(document).ready(function () {
-        $('#searchbox_items').select2({
-            delay: 250,
-            placeholder: 'Search an item',
-            minimumInputLength: 1,
-            allowClear: true,
-            ajax: {
-                url: "{% url 'get_items' %}",
-                type: 'POST',
-                data: function (params) {
-                    return {
-                        term: params.term,
-                        for_purchase: true,  // Changed to fetch base items for purchases
-                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-                    };
-                },
-                processResults: function (data) {
-                    return {
-                        results: data.map(function(item) {
-                            return {
-                                id: item.id,
-                                text: item.text,
-                                price: item.price
-                            };
-                        })
-                    };
-                }
+var purchaseOrder = {
+    items: [],
+    calculate_total: function () {
+        var total = 0.00;
+        $.each(this.items, function (pos, dict) {
+            dict.pos = pos;
+            if (!dict.manual_total) {
+                dict.total_item = roundTo(dict.quantity * dict.price, 2);
             }
-        }).on('select2:select', function (e) {
-            var data = e.params.data;
-            data.number = number++;
-            data.quantity = 1;
-            data.total_item = 0;
-            purchaseOrder.add_item(data);
-            $(this).val('').trigger('change.select2');
+            total += parseFloat(dict.total_item) || 0;
         });
-        $('#table_items tbody')
-            .on('click', 'a[rel="delete"]', function () {
-                var tr = tblItems.cell($(this).closest('td')).index();
-                purchaseOrder.items.splice(tr.row, 1);
-                purchaseOrder.list_item();
-                Swal.fire('Item removed!', '', 'success');
-            })
-            .on('change keyup', 'input[name="quantity"]', function () {
-                var quantity = parseInt($(this).val()) || 1;
-                var tr = tblItems.cell($(this).closest('td')).index();
-                var item = purchaseOrder.items[tr.row];
-                item.quantity = quantity;
-                item.total_item = roundTo(item.price * item.quantity, 2);
-                purchaseOrder.list_item();
-            })
-            .on('change keyup', 'input[name="price"]', function () {
-                var price = parseFloat($(this).val()) || 0;
-                var tr = tblItems.cell($(this).closest('td')).index();
-                var item = purchaseOrder.items[tr.row];
-                item.price = price;
-                item.total_item = roundTo(item.price * item.quantity, 2);
-                purchaseOrder.list_item();
-            });
-
-
-       
-
-        $('.deleteAll').on('click', function () {
-            if (purchaseOrder.items.length === 0) return;
-            Swal.fire({
-                title: "Delete all items?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Delete all',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    purchaseOrder.items = [];
-                    purchaseOrder.list_item();
-                }
-            });
+        $('input[name="total_value"]').val(roundTo(total, 2));
+    },
+    add_item: function (item) {
+        item.number = this.items.length + 1;
+        if (!item.quantity) item.quantity = 1;
+        if (!item.price) item.price = 0;
+        item.total_item = roundTo(item.price * item.quantity, 2);
+        item.manual_total = false;
+        this.items.push(item);
+        this.list_item();
+    },
+    list_item: function () {
+        this.calculate_total();
+        tblItems = $("#table_items").DataTable({
+            destroy: true,
+            data: this.items,
+            columns: [
+                {"data": "number"},
+                {"data": "text"},
+                {"data": "quantity"},
+                {"data": "price"},
+                {"data": "total_item"},
+                {"data": "id"},
+            ],
+            columnDefs: [
+                {
+                    targets: [2],
+                    class: 'text-center',
+                    render: function (data, type, row) {
+                        return '<input name="quantity" type="number" min="1" step="1" class="form-control text-center" value="' + row.quantity + '">';
+                    },
+                },
+                {
+                    targets: [3],
+                    class: 'text-center',
+                    render: function (data, type, row) {
+                        return '<input name="price" type="number" min="0" step="0.01" class="form-control text-center" value="' + row.price.toFixed(2) + '">';
+                    },
+                },
+                {
+                    targets: [4],
+                    class: 'text-center',
+                    render: function (data, type, row) {
+                        return '<input name="total_item" type="number" step="0.01" class="form-control text-center" value="' + row.total_item.toFixed(2) + '">';
+                    },
+                },
+                {
+                    targets: [5],
+                    class: 'text-center',
+                    orderable: false,
+                    render: function () {
+                        return '<a rel="delete" type="button" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i></a>';
+                    },
+                },
+            ],
         });
+    },
+};
 
-        tblItems = $('#table_items').DataTable();
+$(document).ready(function () {
+    // Item search
+    $('#searchbox_items').select2({
+        delay: 250,
+        placeholder: 'Search an item',
+        minimumInputLength: 1,
+        allowClear: true,
+        ajax: {
+            url: "{% url 'get_items' %}",
+            type: 'POST',
+            data: function (params) {
+                return {
+                    term: params.term,
+                    for_purchase: true,
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.map(function(item) {
+                        return { id: item.id, text: item.text, price: item.price };
+                    })
+                };
+            }
+        }
+    }).on('select2:select', function (e) {
+        var data = e.params.data;
+        data.number = number++;
+        data.quantity = 1;
+        data.total_item = 0;
+        purchaseOrder.add_item(data);
+        $(this).val('').trigger('change.select2');
+    });
 
-        $('form#form_purchase_order').on('submit', function (event) {
-            event.preventDefault();
+    // Row events
+    $('#table_items tbody')
+        .on('click', 'a[rel="delete"]', function () {
+            var tr = tblItems.cell($(this).closest('td')).index();
+            purchaseOrder.items.splice(tr.row, 1);
+            purchaseOrder.list_item();
+            Swal.fire('Item removed!', '', 'success');
+        })
+        .on('keyup', 'input[name="quantity"]', function () {
+            var $input = $(this);
+            var quantity = $input.val();
+            if (quantity === '' || isNaN(parseInt(quantity))) {
+                return; // allow empty while typing
+            }
+            quantity = parseInt(quantity);
+            var tr = $input.closest('tr');
+            var rowIndex = tblItems.row(tr).index();
+            var item = purchaseOrder.items[rowIndex];
+            item.quantity = quantity;
+            if (!item.manual_total) {
+                item.total_item = roundTo(quantity * item.price, 2);
+                $(tr).find('input[name="total_item"]').val(item.total_item);
+            }
             purchaseOrder.calculate_total();
-            if (purchaseOrder.items.length === 0) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Please add at least one item!' });
-                return;
+        })
+        .on('blur', 'input[name="quantity"]', function () {
+            var $input = $(this);
+            var quantity = parseInt($input.val());
+            if (isNaN(quantity) || quantity < 1) {
+                quantity = 1;
+                $input.val(1);
             }
-            if (purchaseOrder.items.some(item => item.quantity <= 0 || item.total_item <= 0)) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'All items must have quantity and total amount greater than 0!' });
-                return;
+            var tr = $input.closest('tr');
+            var rowIndex = tblItems.row(tr).index();
+            var item = purchaseOrder.items[rowIndex];
+            item.quantity = quantity;
+            if (!item.manual_total) {
+                item.total_item = roundTo(quantity * item.price, 2);
+                $(tr).find('input[name="total_item"]').val(item.total_item);
             }
-            var formData = {
-                vendor: $('#vendor').val(),
-                delivery_date: $('#delivery_date').val(),
-                delivery_status: $('#delivery_status').val(),
-                total_value: $('input[name="total_value"]').val(),
-                items: purchaseOrder.items.map(item => ({
-                    id: item.id,
-                    quantity: item.quantity,
-                    total_item: item.total_item,
-                    description: item.description || ''
-                }))
-            };
-            if (!formData.vendor || !formData.delivery_date || !formData.delivery_status) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'All fields are required!' });
-                return;
+            purchaseOrder.calculate_total();
+        })
+        .on('change keyup', 'input[name="price"]', function () {
+            var tr = tblItems.cell($(this).closest('td')).index();
+            var item = purchaseOrder.items[tr.row];
+            var price = parseFloat($(this).val()) || 0;
+            item.price = price;
+            if (!item.manual_total) {
+                item.total_item = roundTo(item.price * item.quantity, 2);
+                $(this).closest('tr').find('input[name="total_item"]').val(item.total_item);
             }
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                contentType: 'application/json',
-                headers: {'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()},
-                data: JSON.stringify(formData),
-                success: function (response) {
-                    purchaseOrder.items = [];
-                    purchaseOrder.list_item();
-                    $('form#form_purchase_order').trigger('reset');
-                    Swal.fire({ icon: 'success', title: 'Success', text: response.message });
-                    setTimeout(() => { window.location.href = response.redirect; }, 1500);
-                },
-                error: function (xhr) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: xhr.responseJSON.message || 'An error occurred!'
-                    });
-                }
-            });
+            purchaseOrder.calculate_total();
+        })
+        .on('change keyup', 'input[name="total_item"]', function () {
+            var total_item = parseFloat($(this).val()) || 0;
+            var tr = $(this).closest('tr');
+            var rowIndex = tblItems.row(tr).index();
+            var item = purchaseOrder.items[rowIndex];
+            item.total_item = total_item;
+            item.manual_total = true;
+            purchaseOrder.calculate_total();
+        });
+
+    // Delete all
+    $('.deleteAll').on('click', function () {
+        if (purchaseOrder.items.length === 0) return;
+        Swal.fire({
+            title: "Delete all items?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                purchaseOrder.items = [];
+                purchaseOrder.list_item();
+            }
         });
     });
-</script>
-<script>
-$(document).ready(function() {
-    // Single item
+
+    // Init table
+    tblItems = $('#table_items').DataTable();
+
+    // ---- SUBMIT FORM (restored) ----
+    $('form#form_purchase_order').on('submit', function (event) {
+        event.preventDefault();
+        purchaseOrder.calculate_total();
+
+        if (purchaseOrder.items.length === 0) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Please add at least one item!' });
+            return;
+        }
+        if (purchaseOrder.items.some(item => item.quantity <= 0 || item.total_item <= 0)) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'All items must have quantity and total greater than 0!' });
+            return;
+        }
+
+        var formData = {
+            vendor: $('#vendor').val(),
+            delivery_date: $('#delivery_date').val(),
+            delivery_status: $('#delivery_status').val(),
+            total_value: $('input[name="total_value"]').val(),
+            items: purchaseOrder.items.map(item => ({
+                id: item.id,
+                quantity: item.quantity,
+                total_item: item.total_item,
+                description: item.description || ''
+            }))
+        };
+
+        if (!formData.vendor || !formData.delivery_date || !formData.delivery_status) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'All fields are required!' });
+            return;
+        }
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            contentType: 'application/json',
+            headers: {'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()},
+            data: JSON.stringify(formData),
+            success: function (response) {
+                purchaseOrder.items = [];
+                purchaseOrder.list_item();
+                $('form#form_purchase_order').trigger('reset');
+                Swal.fire({ icon: 'success', title: 'Success', text: response.message });
+                setTimeout(() => { window.location.href = response.redirect; }, 1500);
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: xhr.responseJSON.message || 'An error occurred!'
+                });
+            }
+        });
+    });
+
+    // Prefill
     var preFillItem = {{ pre_fill_item|safe }};
     if (preFillItem) {
-        purchaseOrder.add_item({
-            id: preFillItem.id,
-            text: preFillItem.name,
-            price: preFillItem.price || 0,
-        });
+        purchaseOrder.add_item({ id: preFillItem.id, text: preFillItem.name, price: preFillItem.price || 0 });
     }
-
-    // Multiple items
     var preFillItems = {{ pre_fill_items|safe }};
     if (preFillItems.length > 0) {
         preFillItems.forEach(function(item) {
-            purchaseOrder.add_item({
-                id: item.id,
-                text: item.name,
-                price: item.price || 0,
-            });
+            purchaseOrder.add_item({ id: item.id, text: item.name, price: item.price || 0 });
         });
     }
 });
 </script>
-
 {% endblock javascripts %}
