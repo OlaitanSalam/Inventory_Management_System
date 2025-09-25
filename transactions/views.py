@@ -21,6 +21,15 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView
 from .models import StockMovement
 
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer, Image
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from django.http import HttpResponse
+from django.conf import settings
+import os
+
+
 logger = logging.getLogger(__name__)
 
 def is_ajax(request):
@@ -674,6 +683,78 @@ class StockMovementListView(LoginRequiredMixin, ListView):
         context["selected_item"] = request.GET.get("item")
 
         return context
+    
+
+
+@login_required
+def export_purchase_order_to_pdf(request, pk):
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+
+    # Prepare HTTP response
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="purchase_order_{purchase_order.id}.pdf"'
+
+    # Create PDF doc
+    doc = SimpleDocTemplate(response, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # --- Company Header ---
+    company_name = "HOSPITALITA LTD"
+    elements.append(Paragraph(f"<b>{company_name}</b>", styles["Title"]))
+    elements.append(Spacer(1, 20))
+
+    # --- Title ---
+    elements.append(Paragraph(f"Purchase Order #{purchase_order.id}", styles["Heading1"]))
+    elements.append(Spacer(1, 12))
+
+    # --- Order info ---
+    order_info = [
+        ["Vendor", purchase_order.vendor.name],
+        ["Order Date", purchase_order.order_date.strftime("%Y-%m-%d %H:%M") if purchase_order.order_date else ""],
+        ["Delivery Date", purchase_order.delivery_date.strftime("%Y-%m-%d %H:%M") if purchase_order.delivery_date else ""],
+        ["Delivery Status", purchase_order.get_delivery_status_display()],
+        ["Total Value", f"{purchase_order.total_value:,.2f}"],  # Removed ₦
+    ]
+    table = Table(order_info, colWidths=[120, 300])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 20))
+
+    # --- Items header ---
+    elements.append(Paragraph("Items Purchased", styles["Heading2"]))
+
+    # --- Items table ---
+    data = [["Item", "Quantity", "Total Value"]]  # Removed ₦
+    for detail in purchase_order.details.all():
+        data.append([
+            detail.item.name,
+            detail.quantity,
+            f"{detail.total_value:,.2f}",
+        ])
+
+    items_table = Table(data, colWidths=[220, 100, 100])
+    items_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#b038a0")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(items_table)
+
+    # Build PDF
+    doc.build(elements)
+    return response
 
 
 

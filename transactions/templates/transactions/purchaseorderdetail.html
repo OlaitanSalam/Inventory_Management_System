@@ -42,6 +42,11 @@
                 <a class="btn btn-outline-brand btn-sm rounded-pill shadow-sm" href="{% url 'purchaseorderslist' %}">
                     <i class="fas fa-arrow-left me-2"></i> Back to Purchases
                 </a>
+                <a class="btn btn-outline-brand btn-sm rounded-pill shadow-sm" 
+   href="{% url 'purchaseorder-export-pdf' purchase_order.id %}">
+   <i class="fas fa-file-pdf me-2"></i> Download PDF
+</a>
+
             </div>
         </div>
     </div>

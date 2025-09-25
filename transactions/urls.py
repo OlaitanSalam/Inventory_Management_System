@@ -17,10 +17,12 @@ from .views import (
     SaleDeleteView,
     export_sales_to_excel,
     export_purchases_to_excel,
+    export_purchase_order_to_pdf,
     TransferListView,  
     TransferDetailView,  
     TransferCreateView,  
-    StockMovementListView  
+    StockMovementListView,
+     
 )
 
 # URL patterns
@@ -47,6 +49,9 @@ urlpatterns = [
     # Sales and purchases export
     path('sales/export/', export_sales_to_excel, name='sales-export'),
     path('purchase-orders/export/', export_purchases_to_excel, name='purchaseorders-export'),
+    path("purchase-orders/<int:pk>/export-pdf/", export_purchase_order_to_pdf, name="purchaseorder-export-pdf"),
+
+
 
     # Stock movements log view (optional)
      path("movements/", StockMovementListView.as_view(), name="stock-movements"),
