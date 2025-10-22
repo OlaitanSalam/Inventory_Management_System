@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-
+from django import forms
+from store.models import Store
 from .models import Profile, Customer, Vendor
 
 
@@ -101,3 +102,16 @@ class VendorForm(forms.ModelForm):
                 attrs={'class': 'form-control', 'placeholder': 'Address', 'localize': False}
             ),
         }
+
+class StoreChangeForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['store']
+        widgets = {
+            'store': forms.Select(attrs={'class': 'form-control'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['store'].queryset = Store.objects.all()
+        self.fields['store'].label = "Select Store"

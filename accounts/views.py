@@ -10,6 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import authenticate, login
+from django.views.generic.edit import UpdateView
+from .forms import StoreChangeForm
 
 # Class-based views
 from django.views.generic import (
@@ -296,3 +298,19 @@ class VendorDeleteView(LoginRequiredMixin,  UserPassesTestMixin, DeleteView):
         """Only allow superusers to delete"""
         return self.request.user.is_superuser
     
+class StoreChangeView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Profile
+    form_class = StoreChangeForm
+    template_name = 'accounts/store_change.html'
+    success_url = reverse_lazy('dashboard')
+
+    def get_object(self):
+        return self.request.user
+
+    def test_func(self):
+        return self.request.user.role in ['AD', 'EX']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_icon'] = 'profile'
+        return context

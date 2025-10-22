@@ -19,7 +19,8 @@ from .views import (
     VendorListView,
     VendorCreateView,
     VendorUpdateView,
-    VendorDeleteView
+    VendorDeleteView,
+    StoreChangeView,
 )
 
 urlpatterns = [
@@ -58,6 +59,7 @@ urlpatterns = [
          name='vendor-update'),
     path('vendors/<int:pk>/delete/', VendorDeleteView.as_view(),
          name='vendor-delete'),
+    path('store/change/', StoreChangeView.as_view(), name='store-change'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

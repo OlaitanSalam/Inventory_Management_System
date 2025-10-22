@@ -83,6 +83,7 @@
                 color: #555;
                 position: relative; /* For proper badge positioning */
             }
+            
 
             /* Added right margin to the navbar icons container */
             .navbar-nav {
@@ -98,6 +99,7 @@
             #wrapper {
                 padding-top: 0px; /* Preserves original margin */
             }
+            
 
             /* Navbar with White Gradient and Fixed Position */
             .navbar {
@@ -147,25 +149,41 @@
                 </div>
                 
                 <div class="collapse navbar-collapse" id="toggle-navbar">
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        <!-- Notifications -->
-                        <li class="nav-item me-3"> <!-- Increased margin between icons -->
-                            <a class="nav-link position-relative nav-icon" href="{% url 'notifications' %}">
-                                <i class="fa fa-bell"></i>
-                                {% if unread_alerts_count > 0 %}
-                                    <span class="notification-badge">{{ unread_alerts_count }}</span>
-                                {% endif %}
-                            </a>
-                        </li>
-                        
-                        <!-- Admin Link -->
-                        <li class="nav-item me-2"> <!-- Added margin to the last icon too -->
-                            <a class="nav-link nav-icon" href="/hospitalita-admin/" title="Admin Dashboard">
-                                <i class="fas fa-cog"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+  <ul class="navbar-nav ms-auto align-items-center gap-3"> 
+    <!-- gap-3 gives equal spacing between items -->
+
+    {% if user.role in 'AD,EX' %}
+    <li class="nav-item">
+      <a href="{% url 'store-change' %}" 
+         class="nav-link px-3 py-1" 
+         style="border: 1px solid #b038a0; border-radius: 40px; padding: 0.25rem 0.6rem;"
+         onmouseover="this.style.backgroundColor='rgba(176, 56, 160, 0.1)';"
+         onmouseout="this.style.backgroundColor='';">
+        <i class="fas fa-store"></i> Change Store
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- Notifications -->
+    <li class="nav-item position-relative">
+      <a class="nav-link nav-icon" href="{% url 'notifications' %}">
+        <i class="fa fa-bell"></i>
+        {% if unread_alerts_count > 0 %}
+          <span class="notification-badge">{{ unread_alerts_count }}</span>
+        {% endif %}
+      </a>
+    </li>
+
+    <!-- Admin Link -->
+    <li class="nav-item">
+      <a class="nav-link nav-icon" href="/hospitalita-admin/" title="Admin Dashboard">
+        <i class="fas fa-cog"></i>
+      </a>
+    </li>
+
+  </ul>
+</div>
+
             </div>
         </nav>
 

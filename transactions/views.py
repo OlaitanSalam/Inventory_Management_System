@@ -439,7 +439,7 @@ class PurchaseOrderUpdateView(LoginRequiredMixin, UpdateView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if not (self.object.delivery_status == 'P' and self.object.created_by == request.user):
+        if not (self.object.delivery_status == 'P' and (self.object.created_by == request.user or request.user.is_superuser)):
             if self.object.delivery_status != 'P':
                 message = "You cannot edit this purchase order anymore because it was upon successful transactions."
             else:
@@ -450,7 +450,7 @@ class PurchaseOrderUpdateView(LoginRequiredMixin, UpdateView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if not (self.object.delivery_status == 'P' and self.object.created_by == request.user):
+        if not (self.object.delivery_status == 'P' and (self.object.created_by == request.user or request.user.is_superuser)):
             if self.object.delivery_status != 'P':
                 message = "You cannot edit this purchase order anymore because it was upon successful transactions."
             else:
